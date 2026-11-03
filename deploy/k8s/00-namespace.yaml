@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: relayhub
+  labels:
+    app.kubernetes.io/name: relayhub
+    app.kubernetes.io/part-of: infrastructure-platform
