@@ -62,3 +62,4 @@ spec:
       name: plaintext
   selector:
     app: kafka
+

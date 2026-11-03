@@ -8,3 +8,4 @@ data:
   KAFKA_ENABLED: "true"
   KAFKA_BOOTSTRAP_SERVERS: "kafka.relayhub.svc.cluster.local:9092"
   MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info,metrics,prometheus"
+

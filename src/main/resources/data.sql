@@ -10,7 +10,7 @@ WHERE NOT EXISTS (SELECT 1 FROM tenants WHERE id = 'tenant_free');
 -- Seed Initial API Keys
 -- Demo Ingest Key: rlh_live_demo1234567890abcdef
 INSERT INTO api_keys (id, tenant_id, key_prefix, key_hash, name, role, is_active)
-SELECT 'key_demo_ingest', 'tenant_default', 'rlh_live_demo1234', 'cc907404f3d66fadd66fc43b1f2e7fa42c66ec671b598bd4efec622863aea79e', 'Default Ingestion Key', 'ROLE_INGEST', TRUE
+SELECT 'key_demo_ingest', 'tenant_default', 'rlh_live_demo123', 'cc907404f3d66fadd66fc43b1f2e7fa42c66ec671b598bd4efec622863aea79e', 'Default Ingestion Key', 'ROLE_INGEST', TRUE
 WHERE NOT EXISTS (SELECT 1 FROM api_keys WHERE id = 'key_demo_ingest');
 
 -- Demo Admin Key: rlh_admin_9876543210fedcba

@@ -27,7 +27,7 @@ const rateLimitedCounter = new Counter('rate_limited_429s');
 export default function () {
   const payload = JSON.stringify({
     eventType: 'telemetry.ping',
-    payload: { ping: true, ts: Date.now() }
+    payload: JSON.stringify({ ping: true, ts: Date.now() })
   });
 
   const params = {
@@ -52,3 +52,4 @@ export default function () {
     });
   }
 }
+

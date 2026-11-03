@@ -57,3 +57,4 @@ External services consuming RelayHub webhooks must follow this protocol:
 | **Cross-Tenant Data Leakage** | All database queries strictly parameterized by authenticated `tenant_id`. |
 | **Downstream Denial of Service** | Configurable per-tenant rate limits, burst smoothing, and connect/read timeouts. |
 | **Memory Exhaustion via Bad Payloads** | Inbound bodies capped; outbound response previews truncated to 1024 bytes. |
+

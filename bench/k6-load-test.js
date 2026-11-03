@@ -26,14 +26,13 @@ export default function () {
   const eventId = `evt_load_${__VU}_${__ITER}_${Date.now()}`;
   const payload = JSON.stringify({
     eventType: 'payment.completed',
-    payload: {
+    payload: JSON.stringify({
       orderId: `ord_${Math.floor(Math.random() * 1000000)}`,
       amount: (Math.random() * 500).toFixed(2),
       currency: 'EUR',
       customer: `cust_${__VU}`,
       timestamp: Date.now()
-    },
-    idempotencyKey: `key_${eventId}`
+    })
   });
 
   const params = {
@@ -51,11 +50,14 @@ export default function () {
 
   const isSuccess = check(res, {
     'status is 201 Created': (r) => r.status === 201,
-    'has eventId': (r) => JSON.parse(r.body).eventId !== undefined,
-    'has X-RateLimit headers': (r) => r.headers['X-Ratelimit-Limit'] !== undefined,
+    'has eventId': (r) => {
+      try { return JSON.parse(r.body).eventId !== undefined; } catch(e) { return false; }
+    },
+    'has X-RateLimit headers': (r) => (r.headers['X-Ratelimit-Limit'] || r.headers['X-RateLimit-Limit']) !== undefined,
   });
 
   successfulIngestions.add(isSuccess);
 
   sleep(0.05); // 20 requests/sec per VU
 }
+

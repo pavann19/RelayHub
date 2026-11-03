@@ -3,7 +3,6 @@ package com.relayhub.integration;
 import com.relayhub.model.Tenant;
 import com.relayhub.model.TenantTier;
 import com.relayhub.repository.TenantRepository;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -40,15 +39,12 @@ public class TestcontainersIntegrationTest {
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        if (postgres.isRunning()) {
-            registry.add("spring.datasource.url", postgres::getJdbcUrl);
-            registry.add("spring.datasource.username", postgres::getUsername);
-            registry.add("spring.datasource.password", postgres::getPassword);
-        }
-        if (kafka.isRunning()) {
-            registry.add("spring.kafka.bootstrap-servers", kafka::getBootstrapServers);
-            registry.add("relayhub.kafka.enabled", () -> "true");
-        }
+        registry.add("spring.datasource.url", postgres::getJdbcUrl);
+        registry.add("spring.datasource.username", postgres::getUsername);
+        registry.add("spring.datasource.password", postgres::getPassword);
+        registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
+        registry.add("spring.kafka.bootstrap-servers", kafka::getBootstrapServers);
+        registry.add("relayhub.kafka.enabled", () -> "true");
     }
 
     @Autowired(required = false)
@@ -58,14 +54,14 @@ public class TestcontainersIntegrationTest {
     @DisplayName("Should initialize PostgreSQL schema and verify persistence via Testcontainers")
     void shouldPersistAndRetrieveTenantInPostgres() {
         if (tenantRepository == null || !postgres.isRunning()) {
-            return; // Skip when Docker is not accessible in execution environment
+            return;
         }
 
         Tenant testTenant = Tenant.of("tc_tenant_1", "Testcontainers Tenant", TenantTier.ENTERPRISE);
         tenantRepository.save(testTenant);
 
         Optional<Tenant> retrieved = tenantRepository.findById("tc_tenant_1");
-        assertTrue(retrieved.isPresent());
+        assertTrue(retrieved.isPresent(), "Tenant should be persisted and retrieved from PostgreSQL");
         assertEquals("Testcontainers Tenant", retrieved.get().name());
         assertEquals(TenantTier.ENTERPRISE, retrieved.get().tier());
     }

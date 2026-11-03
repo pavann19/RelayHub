@@ -77,3 +77,4 @@ if __name__ == "__main__":
     assert not invalid, "Tampered payload verification should have failed!"
     
     print("\n✓ Verification logic passed all assertions successfully.")
+

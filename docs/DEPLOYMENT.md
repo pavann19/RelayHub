@@ -73,3 +73,4 @@ RelayHub exports native Micrometer metrics at `/actuator/prometheus`:
 
 ### Distributed Tracing (W3C Trace Context)
 Every outbound webhook includes the `traceparent` header conforming to W3C Trace Context specifications, linking the originating API call, Kafka message envelope, and outbound webhook delivery across distributed tracing backends (OpenTelemetry, Jaeger, Datadog).
+

@@ -136,6 +136,9 @@
                     <version>3.5.2</version>
                     <configuration>
                         <argLine>-XX:+EnableDynamicAgentLoading</argLine>
+                        <systemPropertyVariables>
+                            <api.version>1.44</api.version>
+                        </systemPropertyVariables>
                     </configuration>
                 </plugin>
             </plugins>

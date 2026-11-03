@@ -10,3 +10,4 @@ scrape_configs:
         labels:
           application: "relayhub"
           environment: "production"
+
