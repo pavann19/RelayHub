@@ -57,3 +57,11 @@ The recovery script creates isolated containers, a private network and a tempora
 - Snapshot history starts with this revision. Old overwritten attempts cannot be reconstructed, and deleting a subscription retains the existing cascading-delete behavior. Establish a retention policy before deployment.
 - Existing databases may retain public demo keys, old idempotency hashes, or pre-upgrade PENDING events without an outbox record. Revoke demo keys and explicitly reconcile old events; the additive schema does not silently rewrite historical data. See DEPLOYMENT.md.
 - JWT/OIDC, tracing propagation, production TLS/secret management and hosted operational validation remain outside the implemented scope. Historical benchmark/evidence text is retained and marked historical in EVIDENCE.md.
+
+## Follow-up: signature verifier boundary checks (2026-11-07)
+
+A small follow-up hardens the standalone Java signature verifier. Timestamp distance now uses checked subtraction, rejecting overflow instead of letting `Math.abs(Long.MIN_VALUE)` pass the replay-window check. Duplicate `t` or `v1` fields and negative tolerance settings are rejected. Exact past/future tolerance boundaries still pass. Signing format and outbound payloads are unchanged.
+
+The failure requires a correctly signed header; this is replay-window/parser hardening, not evidence of signature forgery or an exposed inbound authentication bypass. The application uses this utility for verification examples/tests; outbound delivery signing is unchanged.
+
+Regression evidence: the expanded signature suite reproduced two failures before the fix, then passed all 9 tests with zero failures/errors/skips on Java 21 (`mvnw -o test -Dtest=WebhookSignatureTest`). Logs: `target/signature-before.log` and `target/signature-after.log`. The earlier 54-test full-suite and packaged-image results above belong to the preceding revision; they were not rerun or rebuilt for this isolated helper change.

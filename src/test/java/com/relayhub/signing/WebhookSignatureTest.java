@@ -82,5 +82,38 @@ class WebhookSignatureTest {
         assertFalse(WebhookSignatureVerifier.verify("invalid_format", payload, secret));
         assertFalse(WebhookSignatureVerifier.verify("t=not_a_number,v1=123", payload, secret));
     }
+    @Test
+    void rejectsOverflowingReplayWindowArithmetic() {
+        long now = 1_700_000_000L;
+        long timestamp = now - Long.MIN_VALUE;
+        String header = signer.generateSignatureHeader(payload, secret, timestamp);
+        assertFalse(WebhookSignatureVerifier.verify(header, payload, secret, 300L, now));
+        assertFalse(WebhookSignatureVerifier.verify(
+                signer.generateSignatureHeader(payload, secret, Long.MIN_VALUE), payload, secret, 300L, 0));
+    }
+
+    @Test
+    void rejectsDuplicateTimestampAndSignatureFields() {
+        long now = 1_700_000_000L;
+        String header = signer.generateSignatureHeader(payload, secret, now);
+        assertFalse(WebhookSignatureVerifier.verify("t=1," + header, payload, secret, 300L, now));
+        assertFalse(WebhookSignatureVerifier.verify("v1=invalid," + header, payload, secret, 300L, now));
+    }
+
+    @Test
+    void acceptsExactWindowBoundariesAndRejectsOutsideThem() {
+        long now = 1_700_000_000L;
+        for (long offset : new long[]{-300, 0, 300}) {
+            assertTrue(WebhookSignatureVerifier.verify(signer.generateSignatureHeader(payload, secret, now + offset),
+                    payload, secret, 300L, now));
+        }
+        for (long offset : new long[]{-301, 301}) {
+            assertFalse(WebhookSignatureVerifier.verify(signer.generateSignatureHeader(payload, secret, now + offset),
+                    payload, secret, 300L, now));
+        }
+        assertFalse(WebhookSignatureVerifier.verify(signer.generateSignatureHeader(payload, secret, now),
+                payload, secret, -1L, now));
+    }
+
 }
 

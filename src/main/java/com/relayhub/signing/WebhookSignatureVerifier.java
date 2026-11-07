@@ -15,7 +15,7 @@ public final class WebhookSignatureVerifier {
     }
 
     public static boolean verify(String header, String payload, String secret, long toleranceSeconds, long currentTimestamp) {
-        if (header == null || header.isBlank() || payload == null || secret == null) {
+        if (header == null || header.isBlank() || payload == null || secret == null || toleranceSeconds < 0) {
             return false;
         }
 
@@ -29,12 +29,14 @@ public final class WebhookSignatureVerifier {
                 String key = kv[0].trim();
                 String value = kv[1].trim();
                 if ("t".equals(key)) {
+                    if (timestamp != null) return false;
                     try {
                         timestamp = Long.parseLong(value);
                     } catch (NumberFormatException ignored) {
                         return false;
                     }
                 } else if ("v1".equals(key)) {
+                    if (signature != null) return false;
                     signature = value;
                 }
             }
@@ -45,7 +47,12 @@ public final class WebhookSignatureVerifier {
         }
 
         // Timestamp tolerance check against replay attacks
-        if (Math.abs(currentTimestamp - timestamp) > toleranceSeconds) {
+        try {
+            long distance = currentTimestamp >= timestamp
+                    ? Math.subtractExact(currentTimestamp, timestamp)
+                    : Math.subtractExact(timestamp, currentTimestamp);
+            if (distance > toleranceSeconds) return false;
+        } catch (ArithmeticException overflow) {
             return false;
         }
 
