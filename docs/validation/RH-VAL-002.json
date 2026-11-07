@@ -1,0 +1,15 @@
+{
+  "change_id": "RH-002",
+  "validation_id": "RH-VAL-002",
+  "commit": "7836907672be5640d0cf9be781671a2bdbe61d7e",
+  "date": "2026-11-07",
+  "scope": "signature verifier only",
+  "command": "mvnw -o test -Dtest=WebhookSignatureTest",
+  "tests": 9,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "before_fix_failures": 2,
+  "full_suite": "NOT_RERUN",
+  "packaged_image": "NOT_REBUILT"
+}
