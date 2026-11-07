@@ -1,0 +1,4 @@
+target/
+.git/
+.tools/
+next_task.txt

@@ -77,6 +77,10 @@ public class EventRepository {
         return event;
     }
 
+    public void lock(String id) {
+        jdbcTemplate.queryForObject("SELECT id FROM events WHERE id = ? FOR UPDATE", String.class, id);
+    }
+
     public void updateStatus(String id, EventStatus status) {
         jdbcTemplate.update(
                 "UPDATE events SET status = ? WHERE id = ?",

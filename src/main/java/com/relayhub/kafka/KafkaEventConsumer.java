@@ -46,7 +46,7 @@ public class KafkaEventConsumer {
 
             dispatcher.dispatch(event);
         } catch (Exception e) {
-            log.error("Failed to process received Kafka message: {}", e.getMessage(), e);
+            throw new IllegalStateException("Kafka event processing failed", e);
         }
     }
 }

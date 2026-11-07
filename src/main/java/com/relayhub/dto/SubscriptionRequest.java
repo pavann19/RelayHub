@@ -11,6 +11,7 @@ public record SubscriptionRequest(
         String targetUrl,
 
         @Schema(description = "Optional custom HMAC secret (min 16 chars). If omitted, RelayHub securely generates one.", example = "sec_live_9f86d081884c7d659a2feaa0c55ad015")
+        @jakarta.validation.constraints.Size(min = 16, max = 255)
         String secret,
 
         @Schema(description = "Comma-separated list of event types or '*' for all events", example = "payment.completed,order.created")

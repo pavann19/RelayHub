@@ -23,24 +23,35 @@ spring:
     init:
       mode: always
       schema-locations: classpath:schema.sql
-      data-locations: classpath:data.sql
-      continue-on-error: true
+      data-locations: ${RELAYHUB_SEED_LOCATION:classpath:empty.sql}
+      continue-on-error: false
 
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     consumer:
       group-id: ${KAFKA_CONSUMER_GROUP:relayhub-dispatcher-group}
       auto-offset-reset: earliest
-      enable-auto-commit: true
+      enable-auto-commit: false
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    listener:
+      ack-mode: record
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
       acks: all
       retries: 3
+      properties:
+        delivery.timeout.ms: 10000
+        request.timeout.ms: 5000
+        max.block.ms: 5000
 
 relayhub:
+  webhook:
+    allowed-hosts: ${RELAYHUB_WEBHOOK_ALLOWED_HOSTS:}
+    allow-private-targets: ${RELAYHUB_WEBHOOK_ALLOW_PRIVATE_TARGETS:false}
+  workers:
+    enabled: ${RELAYHUB_WORKERS_ENABLED:true}
   kafka:
     enabled: ${KAFKA_ENABLED:false}
     topics:
@@ -54,7 +65,7 @@ management:
         include: health, info, metrics, prometheus
   endpoint:
     health:
-      show-details: always
+      show-details: when_authorized
       probes:
         enabled: true
   metrics:

@@ -105,7 +105,7 @@ public class ApiKeyAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private boolean isPublicPath(String path) {
-        return path.startsWith("/actuator") ||
+        return (path.equals("/actuator/health") || path.startsWith("/actuator/health/")) ||
                path.startsWith("/swagger-ui") ||
                path.startsWith("/v3/api-docs") ||
                path.equals("/") ||

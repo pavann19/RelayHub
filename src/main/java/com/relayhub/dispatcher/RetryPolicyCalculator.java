@@ -21,7 +21,7 @@ public class RetryPolicyCalculator {
         long boundedMs = (long) Math.min(maxInterval, unjitteredMs);
 
         // 2. Full Jitter: Uniform random between [0, boundedMs]
-        long jitteredMs = ThreadLocalRandom.current().nextLong(Math.max(100, boundedMs / 2), boundedMs + 1);
+        long jitteredMs = ThreadLocalRandom.current().nextLong(Math.max(1, boundedMs) + 1);
 
         // 3. Inspect downstream Retry-After header if present
         long retryAfterMs = parseRetryAfter(retryAfterHeader);
@@ -39,13 +39,13 @@ public class RetryPolicyCalculator {
         // Check if delta-seconds format
         try {
             long seconds = Long.parseLong(headerValue);
-            return Math.max(0, seconds * 1000L);
+            return seconds <= 0 ? 0 : Math.min(seconds, 86400L) * 1000L;
         } catch (NumberFormatException ignored) {
             // Check if HTTP-date format (RFC 7231 / RFC 1123)
             try {
                 Instant target = DateTimeFormatter.RFC_1123_DATE_TIME.parse(headerValue, Instant::from);
                 long diff = Duration.between(Instant.now(), target).toMillis();
-                return Math.max(0, diff);
+                return Math.min(86400000L, Math.max(0, diff));
             } catch (DateTimeParseException ignoredDate) {
                 return 0L;
             }

@@ -48,6 +48,9 @@ public class ApiKeyController {
         String hash = ApiKeyHasher.hashKey(rawKey);
 
         String role = request.role() != null && !request.role().isBlank() ? request.role().trim() : "ROLE_INGEST";
+        if (!java.util.Set.of("ROLE_INGEST", "ROLE_ADMIN").contains(role)) {
+            throw new IllegalArgumentException("Unsupported API key role");
+        }
         Instant now = Instant.now();
         Instant expiresAt = request.validityDays() != null && request.validityDays() > 0
                 ? now.plus(request.validityDays(), ChronoUnit.DAYS)

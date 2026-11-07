@@ -138,6 +138,8 @@
                         <argLine>-XX:+EnableDynamicAgentLoading</argLine>
                         <systemPropertyVariables>
                             <api.version>1.44</api.version>
+                            <!-- Avoid Windows AF_UNIX failures with an 8.3 TEMP path. -->
+                            <jdk.net.unixdomain.tmpdir>${project.build.directory}</jdk.net.unixdomain.tmpdir>
                         </systemPropertyVariables>
                     </configuration>
                 </plugin>

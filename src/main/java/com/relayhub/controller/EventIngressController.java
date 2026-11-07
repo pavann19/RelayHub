@@ -71,13 +71,13 @@ public class EventIngressController {
             summary = "Ingest a new event",
             description = "Receives an event payload, verifies idempotency key, persists the event, and publishes it for reliable webhook delivery.",
             responses = {
-                    @ApiResponse(responseCode = "201", description = "Event ingested successfully"),
-                    @ApiResponse(responseCode = "200", description = "Idempotent replay of previously processed event"),
+                    @ApiResponse(responseCode = "201", description = "Created, or cached ingestion response with Idempotent-Replay header"),
                     @ApiResponse(responseCode = "409", description = "Concurrent request with identical idempotency key is in progress"),
                     @ApiResponse(responseCode = "422", description = "Idempotency key reuse detected with mismatched payload"),
                     @ApiResponse(responseCode = "429", description = "Rate limit or monthly quota exceeded")
             }
     )
+    @org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
     public ResponseEntity<?> ingestEvent(
             @Valid @RequestBody IngestEventRequest request,
             @Parameter(description = "Optional Idempotency-Key header for duplicate protection")
@@ -95,7 +95,7 @@ public class EventIngressController {
                 : objectMapper.writeValueAsString(request.payload());
 
         // 1. Idempotency Check & Lock Acquisition
-        IdempotencyOutcome outcome = idempotencyService.checkOrAcquire(tenantId, effectiveIdempotencyKey, payloadJson);
+        IdempotencyOutcome outcome = idempotencyService.checkOrAcquire(tenantId, effectiveIdempotencyKey, objectMapper.writeValueAsString(List.of(request.eventType(), payloadJson)));
 
         if (outcome.type() == IdempotencyOutcome.Type.CACHED) {
             HttpHeaders headers = new HttpHeaders();
@@ -172,7 +172,7 @@ public class EventIngressController {
         Tenant tenant = TenantContext.getTenant();
         String tenantId = tenant != null ? tenant.id() : "tenant_default";
 
-        List<Event> events = eventRepository.findByTenantId(tenantId, Math.min(limit, 100));
+        List<Event> events = eventRepository.findByTenantId(tenantId, Math.max(1, Math.min(limit, 100)));
         return ResponseEntity.ok(events);
     }
 }

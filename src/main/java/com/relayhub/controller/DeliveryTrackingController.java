@@ -37,9 +37,9 @@ public class DeliveryTrackingController {
 
         List<WebhookDelivery> deliveries;
         if (eventId != null && !eventId.isBlank()) {
-            deliveries = repository.findByEventId(eventId.trim());
+            deliveries = repository.findByEventId(eventId.trim()).stream().filter(d -> d.tenantId().equals(tenantId)).toList();
         } else {
-            deliveries = repository.findByTenantId(tenantId, Math.min(limit, 100));
+            deliveries = repository.findByTenantId(tenantId, Math.max(1, Math.min(limit, 100)));
         }
 
         List<DeliveryDto> dtoList = deliveries.stream()
@@ -59,6 +59,20 @@ public class DeliveryTrackingController {
                 .map(this::toDto)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.fasterxml.jackson.databind.ObjectMapper mapper;
+
+    @GetMapping("/{id}/attempts")
+    public ResponseEntity<?> listAttemptHistory(@PathVariable String id) throws Exception {
+        Tenant tenant = TenantContext.getTenant();
+        if (tenant == null || repository.findById(id).filter(d -> d.tenantId().equals(tenant.id())).isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        List<com.fasterxml.jackson.databind.JsonNode> attempts = new java.util.ArrayList<>();
+        for (String snapshot : repository.findAttemptSnapshots(id)) attempts.add(mapper.readTree(snapshot));
+        return ResponseEntity.ok(attempts);
     }
 
     @GetMapping("/dead-letters")

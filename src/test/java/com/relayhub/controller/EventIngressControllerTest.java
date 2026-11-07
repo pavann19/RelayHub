@@ -98,6 +98,8 @@ class EventIngressControllerTest {
 
         assertEquals(1, eventRepository.savedEvents.size());
         assertEquals(1, eventBus.publishedEvents.size());
+        assertEquals(request.payload(), eventRepository.savedEvents.getFirst().payload());
+        assertEquals(request.payload(), eventBus.publishedEvents.getFirst().payload());
     }
 
     @Test
@@ -141,7 +143,7 @@ class EventIngressControllerTest {
     @DisplayName("Should return 409 Conflict when concurrent request with same idempotency key is in progress")
     void shouldReturn409OnIdempotencyConflict() throws Exception {
         String payload = "{\"orderId\":1}";
-        String hash = com.relayhub.idempotency.RequestHasher.sha256(payload);
+        String hash = com.relayhub.idempotency.RequestHasher.sha256(objectMapper.writeValueAsString(List.of("order.completed", payload)));
 
         idempotencyRepository.records.put("tenant_test:key_concurrent", new IdempotencyRecord(
                 "tenant_test",
@@ -168,7 +170,7 @@ class EventIngressControllerTest {
     @DisplayName("Should return cached response with Idempotent-Replay header on duplicate committed request")
     void shouldReturnCachedResponseOnIdempotentReplay() throws Exception {
         String payload = "{\"orderId\":1}";
-        String hash = com.relayhub.idempotency.RequestHasher.sha256(payload);
+        String hash = com.relayhub.idempotency.RequestHasher.sha256(objectMapper.writeValueAsString(List.of("order.completed", payload)));
         String cachedJson = "{\"eventId\":\"evt_cached_123\",\"status\":\"DELIVERED\"}";
 
         idempotencyRepository.records.put("tenant_test:key_committed", new IdempotencyRecord(

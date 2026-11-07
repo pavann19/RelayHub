@@ -45,6 +45,9 @@ public class ReplayController {
     @PostMapping
     @Operation(summary = "Replay dead-lettered or failed webhook events")
     public ResponseEntity<ReplayResponse> replayDeliveries(@RequestBody(required = false) ReplayRequest request) {
+        if (request != null && request.subscriptionId() != null && !request.subscriptionId().isBlank()) {
+            throw new IllegalArgumentException("subscriptionId replay filtering is not supported");
+        }
         Tenant tenant = TenantContext.getTenant();
         String tenantId = tenant != null ? tenant.id() : "tenant_default";
 
@@ -56,9 +59,9 @@ public class ReplayController {
                     .filter(d -> d.tenantId().equals(tenantId))
                     .orElseThrow(() -> new IllegalArgumentException("Delivery not found or unauthorized"));
 
-            dispatcher.retrySingleDelivery(delivery.id());
+            dispatcher.queueReplay(delivery.id());
             replayedEventIds.add(delivery.eventId());
-            return ResponseEntity.ok(new ReplayResponse(1, replayedEventIds, "Single delivery replay executed"));
+            return ResponseEntity.ok(new ReplayResponse(1, replayedEventIds, "Single delivery replay queued"));
         }
 
         // Case 2: Replay by specific Event ID
@@ -67,16 +70,22 @@ public class ReplayController {
                     .filter(e -> e.tenantId().equals(tenantId))
                     .orElseThrow(() -> new IllegalArgumentException("Event not found or unauthorized"));
 
-            dispatcher.dispatch(event);
+            for (WebhookDelivery delivery : deliveryRepository.findByEventId(event.id())) {
+                if (delivery.status() == com.relayhub.model.DeliveryStatus.DEAD_LETTERED
+                        || delivery.status() == com.relayhub.model.DeliveryStatus.FAILED) dispatcher.queueReplay(delivery.id());
+            }
             replayedEventIds.add(event.id());
-            return ResponseEntity.ok(new ReplayResponse(1, replayedEventIds, "Event replay executed"));
+            return ResponseEntity.ok(new ReplayResponse(1, replayedEventIds, "Event replay queued"));
         }
 
+        if (request == null || !Boolean.TRUE.equals(request.replayAllDeadLetters())) {
+            throw new IllegalArgumentException("Specify a deliveryId, eventId, or replayAllDeadLetters=true");
+        }
         // Case 3: Bulk replay all dead-lettered events for tenant
         List<WebhookDelivery> deadLetters = deliveryRepository.findDeadLettersByTenantId(tenantId);
         for (WebhookDelivery dl : deadLetters) {
             try {
-                dispatcher.retrySingleDelivery(dl.id());
+                dispatcher.queueReplay(dl.id());
                 if (!replayedEventIds.contains(dl.eventId())) {
                     replayedEventIds.add(dl.eventId());
                 }

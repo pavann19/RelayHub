@@ -10,7 +10,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
-@Component
+@Component("transportEventBus")
 @ConditionalOnProperty(name = "relayhub.kafka.enabled", havingValue = "true")
 public class KafkaEventBus implements EventBus {
 
@@ -36,7 +36,7 @@ public class KafkaEventBus implements EventBus {
             EventEnvelope envelope = EventEnvelope.fromEvent(event);
             String json = objectMapper.writeValueAsString(envelope);
             // Partition by tenantId for strict per-tenant in-order delivery
-            kafkaTemplate.send(eventsTopic, event.tenantId(), json);
+            kafkaTemplate.send(eventsTopic, event.tenantId(), json).join();
             log.info("KafkaEventBus: Published event {} to topic {} (key: {})", event.id(), eventsTopic, event.tenantId());
         } catch (JsonProcessingException e) {
             log.error("Failed to serialize event {} for Kafka: {}", event.id(), e.getMessage());
@@ -49,10 +49,10 @@ public class KafkaEventBus implements EventBus {
         try {
             EventEnvelope envelope = EventEnvelope.fromEvent(event);
             String json = objectMapper.writeValueAsString(envelope);
-            kafkaTemplate.send(dlqTopic, event.tenantId(), json);
+            kafkaTemplate.send(dlqTopic, event.tenantId(), json).join();
             log.warn("KafkaEventBus [DLQ]: Event {} published to DLQ {}. Reason: {}", event.id(), dlqTopic, reason);
         } catch (JsonProcessingException e) {
-            log.error("Failed to serialize DLQ event {}: {}", event.id(), e.getMessage());
+            throw new IllegalStateException("DLQ serialization failed", e);
         }
     }
 }

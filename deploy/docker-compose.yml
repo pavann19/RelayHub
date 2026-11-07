@@ -57,6 +57,8 @@ services:
 
   relayhub:
     image: relayhub:latest
+    build:
+      context: ..
     container_name: relayhub-app
     depends_on:
       postgres:
@@ -72,6 +74,9 @@ services:
       SPRING_DATASOURCE_USERNAME: relayhub
       SPRING_DATASOURCE_PASSWORD: relayhub_secret
       SPRING_DATASOURCE_DRIVER: org.postgresql.Driver
+      RELAYHUB_SEED_LOCATION: classpath:data.sql
+      RELAYHUB_WEBHOOK_ALLOWED_HOSTS: mock-receiver
+      RELAYHUB_WEBHOOK_ALLOW_PRIVATE_TARGETS: "true"
       KAFKA_ENABLED: "true"
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info,metrics,prometheus"
@@ -98,6 +103,9 @@ services:
       SPRING_DATASOURCE_USERNAME: relayhub
       SPRING_DATASOURCE_PASSWORD: relayhub_secret
       SPRING_DATASOURCE_DRIVER: org.postgresql.Driver
+      RELAYHUB_SEED_LOCATION: classpath:data.sql
+      RELAYHUB_WEBHOOK_ALLOWED_HOSTS: mock-receiver
+      RELAYHUB_WEBHOOK_ALLOW_PRIVATE_TARGETS: "true"
       KAFKA_ENABLED: "true"
       KAFKA_BOOTSTRAP_SERVERS: kafka:9092
       MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info,metrics,prometheus"

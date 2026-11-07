@@ -30,20 +30,20 @@ class RetryPolicyCalculatorTest {
     void shouldCalculateExponentialBackoff() {
         Instant now = Instant.now();
 
-        // Attempt 1: base = 1000ms, with jitter delay is between [500ms, 1000ms]
+        // Attempt 1: base = 1000ms, with jitter delay is between [0ms, 1000ms]
         Instant retry1 = calculator.calculateNextRetry(subscription, 1, null);
         long delay1 = Duration.between(now, retry1).toMillis();
-        assertTrue(delay1 >= 450 && delay1 <= 1500, "Attempt 1 delay should be ~1000ms (got: " + delay1 + ")");
+        assertTrue(delay1 >= 0 && delay1 <= 1500, "Attempt 1 delay should be ~1000ms (got: " + delay1 + ")");
 
         // Attempt 2: base = 2000ms
         Instant retry2 = calculator.calculateNextRetry(subscription, 2, null);
         long delay2 = Duration.between(now, retry2).toMillis();
-        assertTrue(delay2 >= 900 && delay2 <= 2500, "Attempt 2 delay should be ~2000ms (got: " + delay2 + ")");
+        assertTrue(delay2 >= 0 && delay2 <= 2500, "Attempt 2 delay should be ~2000ms (got: " + delay2 + ")");
 
         // Attempt 3: base = 4000ms
         Instant retry3 = calculator.calculateNextRetry(subscription, 3, null);
         long delay3 = Duration.between(now, retry3).toMillis();
-        assertTrue(delay3 >= 1900 && delay3 <= 4500, "Attempt 3 delay should be ~4000ms (got: " + delay3 + ")");
+        assertTrue(delay3 >= 0 && delay3 <= 4500, "Attempt 3 delay should be ~4000ms (got: " + delay3 + ")");
 
         // Attempt 10: capped at maxInterval = 10000ms
         Instant retry10 = calculator.calculateNextRetry(subscription, 10, null);

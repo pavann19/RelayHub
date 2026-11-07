@@ -50,6 +50,12 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(problem);
     }
 
+    @ExceptionHandler(org.springframework.security.access.AccessDeniedException.class)
+    public ResponseEntity<ProblemDetail> handleAccessDenied() {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+                ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, "Insufficient permissions"));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ProblemDetail> handleGenericException(
             Exception ex,
@@ -57,7 +63,7 @@ public class GlobalExceptionHandler {
     ) {
         ProblemDetail problem = ProblemDetail.forStatusAndDetail(
                 HttpStatus.INTERNAL_SERVER_ERROR,
-                "An unexpected server error occurred: " + ex.getMessage()
+                "An unexpected server error occurred"
         );
         problem.setTitle("Internal Server Error");
         problem.setInstance(URI.create(request.getRequestURI()));

@@ -187,6 +187,11 @@ class WebhookDispatcherTest {
         }
 
         @Override
+        public List<WebhookDelivery> findByEventId(String eventId) {
+            return map.values().stream().filter(d -> d.eventId().equals(eventId)).toList();
+        }
+
+        @Override
         public Optional<WebhookDelivery> findById(String id) {
             return Optional.ofNullable(map.get(id));
         }
@@ -215,6 +220,9 @@ class WebhookDispatcherTest {
             map.put(event.id(), event);
             return event;
         }
+
+        @Override
+        public void lock(String id) {}
 
         @Override
         public void updateStatus(String id, EventStatus status) {

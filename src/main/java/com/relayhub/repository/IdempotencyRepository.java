@@ -40,7 +40,7 @@ public class IdempotencyRepository {
     public Optional<IdempotencyRecord> find(String tenantId, String idempotencyKey) {
         try {
             IdempotencyRecord record = jdbcTemplate.queryForObject(
-                    "SELECT tenant_id, idempotency_key, request_hash, status, response_status, response_body, created_at, expires_at FROM idempotency_records WHERE tenant_id = ? AND idempotency_key = ?",
+                    "SELECT tenant_id, idempotency_key, request_hash, status, response_status, response_body, created_at, expires_at FROM idempotency_records WHERE tenant_id = ? AND idempotency_key = ? AND expires_at > CURRENT_TIMESTAMP",
                     ROW_MAPPER,
                     tenantId,
                     idempotencyKey
@@ -59,6 +59,11 @@ public class IdempotencyRepository {
                     """
                     INSERT INTO idempotency_records (tenant_id, idempotency_key, request_hash, status, created_at, expires_at)
                     VALUES (?, ?, ?, 'IN_PROGRESS', ?, ?)
+                    ON CONFLICT (tenant_id, idempotency_key) DO UPDATE SET
+                        request_hash = EXCLUDED.request_hash, status = 'IN_PROGRESS',
+                        created_at = EXCLUDED.created_at, expires_at = EXCLUDED.expires_at,
+                        response_status = NULL, response_body = NULL
+                    WHERE idempotency_records.expires_at <= CURRENT_TIMESTAMP
                     """,
                     tenantId,
                     idempotencyKey,
@@ -77,7 +82,7 @@ public class IdempotencyRepository {
         jdbcTemplate.update(
                 """
                 UPDATE idempotency_records
-                SET status = 'COMPLETED', response_status = ?, response_body = ?
+                SET status = 'COMPLETED', response_status = ?, response_body = ?, expires_at = CURRENT_TIMESTAMP + INTERVAL '24 hours'
                 WHERE tenant_id = ? AND idempotency_key = ?
                 """,
                 responseStatus,

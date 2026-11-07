@@ -88,3 +88,29 @@ CREATE TABLE IF NOT EXISTS idempotency_records (
 );
 CREATE INDEX IF NOT EXISTS idx_idempotency_expires ON idempotency_records(expires_at);
 
+
+-- Durable publication and attempt history. Existing delivery rows are preserved.
+CREATE TABLE IF NOT EXISTS event_outbox (
+    id BIGSERIAL PRIMARY KEY,
+    event_id VARCHAR(64) NOT NULL REFERENCES events(id),
+    kind VARCHAR(16) NOT NULL,
+    reason TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    published_at TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_outbox_pending ON event_outbox(id) WHERE published_at IS NULL;
+CREATE TABLE IF NOT EXISTS webhook_delivery_attempts (
+    delivery_id VARCHAR(64) NOT NULL REFERENCES webhook_deliveries(id) ON DELETE CASCADE,
+    attempt_number INT NOT NULL,
+    snapshot JSONB NOT NULL,
+    PRIMARY KEY (delivery_id, attempt_number)
+);
+CREATE TABLE IF NOT EXISTS tenant_rate_limits (
+    tenant_id VARCHAR(64) PRIMARY KEY REFERENCES tenants(id) ON DELETE CASCADE,
+    tokens DOUBLE PRECISION NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
+    quota_month VARCHAR(7) NOT NULL,
+    usage BIGINT NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_delivery_due ON webhook_deliveries(next_retry_at)
+    WHERE status IN ('PENDING', 'RETRYING');

@@ -12,12 +12,8 @@ import com.relayhub.repository.EventRepository;
 import com.relayhub.repository.SubscriptionRepository;
 import com.relayhub.signing.WebhookSigner;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -35,7 +31,6 @@ public class WebhookDispatcher {
     private final HttpWebhookClient httpClient;
     private final RelayHubMetrics metrics;
     private final EventBus eventBus;
-    private final ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
 
     public WebhookDispatcher(
             SubscriptionRepository subscriptionRepository,
@@ -57,31 +52,26 @@ public class WebhookDispatcher {
         this.eventBus = eventBus;
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public List<WebhookDelivery> dispatch(Event event) {
-        List<Subscription> subscriptions = subscriptionRepository.findActiveByTenantId(event.tenantId());
-        List<Subscription> matching = subscriptions.stream()
-                .filter(s -> s.matchesEventType(event.eventType()))
-                .toList();
-
-        if (matching.isEmpty()) {
-            log.info("No active subscriptions matched for event {} (type: {})", event.id(), event.eventType());
-            eventRepository.updateStatus(event.id(), EventStatus.DELIVERED);
-            return List.of();
-        }
-
-        List<CompletableFuture<WebhookDelivery>> futures = new ArrayList<>();
+        eventRepository.lock(event.id());
+        List<WebhookDelivery> existing = deliveryRepository.findByEventId(event.id());
+        if (eventRepository.findById(event.id()).orElseThrow().status() != EventStatus.PENDING) return existing;
+        List<Subscription> matching = subscriptionRepository.findActiveByTenantId(event.tenantId()).stream()
+                .filter(sub -> sub.matchesEventType(event.eventType())).toList();
         for (Subscription sub : matching) {
-            futures.add(CompletableFuture.supplyAsync(() -> executeAttempt(event, sub, 1, null), executor));
+            if (existing.stream().noneMatch(d -> d.subscriptionId().equals(sub.id()))) {
+                deliveryRepository.save(WebhookDelivery.initial("del_" + UUID.randomUUID(),
+                        event.id(), sub.id(), event.tenantId()));
+            }
         }
-
-        List<WebhookDelivery> results = futures.stream()
-                .map(CompletableFuture::join)
-                .toList();
-
-        updateAggregateEventStatus(event.id(), results);
-        return results;
+        List<WebhookDelivery> deliveries = deliveryRepository.findByEventId(event.id());
+        if (deliveries.isEmpty()) eventRepository.updateStatus(event.id(), EventStatus.DELIVERED);
+        else updateAggregateEventStatus(event.id(), deliveries);
+        return deliveries;
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public WebhookDelivery executeAttempt(Event event, Subscription sub, int attemptNumber, String existingDeliveryId) {
         String deliveryId = existingDeliveryId != null ? existingDeliveryId : "del_" + UUID.randomUUID();
         String signatureHeader = signer.generateSignatureHeader(event.payload(), sub.secret());
@@ -258,20 +248,38 @@ public class WebhookDispatcher {
         return delivery;
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public WebhookDelivery retrySingleDelivery(String deliveryId) {
         WebhookDelivery oldDelivery = deliveryRepository.findById(deliveryId)
                 .orElseThrow(() -> new IllegalArgumentException("Delivery not found: " + deliveryId));
 
+        eventRepository.lock(oldDelivery.eventId());
+        oldDelivery = deliveryRepository.findById(deliveryId).orElseThrow();
         Event event = eventRepository.findById(oldDelivery.eventId())
-                .orElseThrow(() -> new IllegalArgumentException("Event not found: " + oldDelivery.eventId()));
+                .orElseThrow(() -> new IllegalArgumentException("Event not found"));
 
         Subscription sub = subscriptionRepository.findById(oldDelivery.subscriptionId())
-                .orElseThrow(() -> new IllegalArgumentException("Subscription not found: " + oldDelivery.subscriptionId()));
+                .orElseThrow(() -> new IllegalArgumentException("Subscription not found"));
 
         log.info("Retrying delivery {} (current attempt: {})", deliveryId, oldDelivery.attemptNumber() + 1);
-        WebhookDelivery newDelivery = executeAttempt(event, sub, oldDelivery.attemptNumber() + 1, deliveryId);
-        updateAggregateEventStatus(event.id(), List.of(newDelivery));
+        WebhookDelivery newDelivery = executeAttempt(event, sub, oldDelivery.status() == DeliveryStatus.PENDING ? 1 : oldDelivery.attemptNumber() + 1, deliveryId);
+        updateAggregateEventStatus(event.id(), deliveryRepository.findByEventId(event.id()));
         return newDelivery;
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    public void queueReplay(String deliveryId) {
+        WebhookDelivery old = deliveryRepository.findById(deliveryId).orElseThrow();
+        eventRepository.lock(old.eventId());
+        old = deliveryRepository.findById(deliveryId).orElseThrow();
+        if (old.status() != DeliveryStatus.DEAD_LETTERED && old.status() != DeliveryStatus.FAILED) {
+            throw new IllegalArgumentException("Only failed or dead-lettered deliveries can be replayed");
+        }
+        deliveryRepository.save(new WebhookDelivery(old.id(), old.eventId(), old.subscriptionId(), old.tenantId(),
+                old.attemptNumber(), DeliveryStatus.RETRYING, old.httpStatus(), old.requestHeaders(),
+                old.responseHeaders(), old.responseBody(), old.errorMessage(), old.latencyMs(),
+                Instant.now(), old.createdAt(), null));
+        updateAggregateEventStatus(old.eventId(), deliveryRepository.findByEventId(old.eventId()));
     }
 
     private void updateAggregateEventStatus(String eventId, List<WebhookDelivery> deliveries) {
@@ -279,7 +287,7 @@ public class WebhookDispatcher {
             return;
         }
 
-        boolean anyRetrying = deliveries.stream().anyMatch(d -> d.status() == DeliveryStatus.RETRYING);
+        boolean anyRetrying = deliveries.stream().anyMatch(d -> d.status() == DeliveryStatus.RETRYING || d.status() == DeliveryStatus.PENDING);
         boolean allSuccess = deliveries.stream().allMatch(d -> d.status() == DeliveryStatus.SUCCESS);
         boolean anySuccess = deliveries.stream().anyMatch(d -> d.status() == DeliveryStatus.SUCCESS);
         boolean allDead = deliveries.stream().allMatch(d -> d.status() == DeliveryStatus.DEAD_LETTERED);

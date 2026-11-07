@@ -82,12 +82,19 @@ public class DeliveryRepository {
         );
     }
 
+    public List<String> findAttemptSnapshots(String deliveryId) {
+        return jdbcTemplate.queryForList("SELECT snapshot::text FROM webhook_delivery_attempts WHERE delivery_id = ? ORDER BY attempt_number",
+                String.class, deliveryId);
+    }
+
+    @org.springframework.transaction.annotation.Transactional
     public WebhookDelivery save(WebhookDelivery delivery) {
         jdbcTemplate.update(
                 """
                 INSERT INTO webhook_deliveries (id, event_id, subscription_id, tenant_id, attempt_number, status, http_status, request_headers, response_headers, response_body, error_message, latency_ms, next_retry_at, created_at, completed_at)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT (id) DO UPDATE SET
+                    attempt_number = EXCLUDED.attempt_number,
                     status = EXCLUDED.status,
                     http_status = EXCLUDED.http_status,
                     request_headers = EXCLUDED.request_headers,
@@ -114,6 +121,11 @@ public class DeliveryRepository {
                 Timestamp.from(delivery.createdAt() != null ? delivery.createdAt() : Instant.now()),
                 delivery.completedAt() != null ? Timestamp.from(delivery.completedAt()) : null
         );
+        jdbcTemplate.update("""
+                INSERT INTO webhook_delivery_attempts (delivery_id, attempt_number, snapshot)
+                SELECT id, attempt_number, to_jsonb(d) FROM webhook_deliveries d WHERE id = ? AND status <> 'PENDING'
+                ON CONFLICT (delivery_id, attempt_number) DO NOTHING
+                """, delivery.id());
         return delivery;
     }
 }

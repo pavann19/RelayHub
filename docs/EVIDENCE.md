@@ -1,3 +1,5 @@
+> Historical evidence retained from the earlier revision. It does not validate the current code or override the limitations in [FIX_VALIDATION.md](FIX_VALIDATION.md). Earlier production-readiness, automatic-retry and performance claims must not be treated as current verified behavior.
+
 # RelayHub — Verification Evidence & Runtime Benchmarks
 
 This document records concrete verification evidence, unit test results, failure-injection assertions, live chaos test outcomes, and performance benchmarks for RelayHub.

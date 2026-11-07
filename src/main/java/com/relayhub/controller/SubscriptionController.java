@@ -36,9 +36,13 @@ public class SubscriptionController {
         this.repository = repository;
     }
 
+    @org.springframework.beans.factory.annotation.Autowired
+    private com.relayhub.security.WebhookTargetPolicy targetPolicy;
+
     @PostMapping
     @Operation(summary = "Register a new webhook subscription")
     public ResponseEntity<SubscriptionResponse> createSubscription(@Valid @RequestBody SubscriptionRequest request) {
+        targetPolicy.validate(request.targetUrl().trim());
         Tenant tenant = TenantContext.getTenant();
         String tenantId = tenant != null ? tenant.id() : "tenant_default";
 

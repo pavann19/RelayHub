@@ -1,0 +1,125 @@
+{
+  "date": "2026-11-07",
+  "timezone": "Asia/Kolkata",
+  "scope": "local uncommitted working tree",
+  "base_commit": "555b447d76a5f63a43b76e1e06ede7c38b1aa6d9",
+  "java": "Temurin 21.0.13",
+  "command": "mvnw verify",
+  "status": "PASS",
+  "totals": {
+    "tests": 54,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "suites": [
+    {
+      "name": "com.relayhub.controller.EventIngressControllerTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.relayhub.dispatcher.FailureInjectionAndRecoveryTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.relayhub.dispatcher.RetryPolicyCalculatorTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.relayhub.dispatcher.WebhookDispatcherTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.relayhub.idempotency.IdempotencyServiceTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.relayhub.integration.AutomaticDeliveryIntegrationTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.relayhub.integration.TestcontainersIntegrationTest",
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.relayhub.ratelimit.TokenBucketRateLimiterTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.relayhub.security.ApiKeyHasherTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.relayhub.security.WebhookTargetPolicyTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.relayhub.signing.WebhookSignatureTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "jar_sha256": "7114d44919997ff9596579971e315aa5f139245adad5a6f1fd4671e2762a9121",
+  "local_image": {
+    "tag": "relayhub:verified-fixes",
+    "id": "sha256:8bf0015a3e1bc7c12bd93b9e62dc3abad4748f6aff9fd88a689987ac58a6b2f2",
+    "assembly": "verified JAR copied into the previously source-built Java 21 runtime image"
+  },
+  "packaged_process_recovery": {
+    "status": "PASS",
+    "transport": "direct",
+    "image": "relayhub:verified-fixes",
+    "accepted_before_process_kill": true,
+    "pending_outbox_before_kill": 1,
+    "delivered_after_replacement": true,
+    "committed_attempts": 1,
+    "receiver_acceptances": 1,
+    "idempotent_response_survived_restart": true,
+    "original_payload_preserved": true,
+    "elapsed_seconds": 45.12
+  },
+  "isolated_recovery_containers_and_networks_removed": true,
+  "compose_configuration": "PASS",
+  "git_diff_check": "PASS",
+  "hosted_ci": "UNVERIFIED",
+  "kubernetes_runtime": "UNVERIFIED",
+  "managed_production": "UNVERIFIED",
+  "limits": [
+    "At-least-once delivery requires receiver deduplication",
+    "DNS rebinding requires network egress enforcement",
+    "No current throughput or production capacity claim",
+    "Fresh cold source image build after the last payload correction was not repeated; final standalone image was assembled from the fully verified JAR"
+  ]
+}
