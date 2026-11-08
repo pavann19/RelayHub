@@ -1,3 +1,5 @@
+> Latest validated implementation: RH-005, commit `cfa7fddea94ae987ed3bf97911b32c35ce74a7f5`, 2026-11-08. **75 tests passed**, current source image built and restart/backup recovery passed. See [RH-VAL-005](validation/RH-VAL-005.json), [gap status](GAP_STATUS.md), and [operations](OPERATIONS.md). Older sections below preserve historical evidence and limitations; RH-004/RH-005 supersede their descriptions of DNS resolution, poison-record retry, subscription deletion and HTTP lock occupancy.
+
 # Reliability and authorization fix validation
 
 Date: 2026-11-07 (Asia/Kolkata). Scope: local working tree in `D:/Apple`; no public push or deployment.
@@ -75,3 +77,9 @@ Outbound HTTP now pins each connection to the exact policy-approved addresses us
 API request bodies are capped at 1 MiB including unknown/chunked lengths. Field limits match database columns; control characters in event types and null bytes in text payloads are rejected. Event replay reports zero when no eligible delivery was queued.
 
 Validation and commit identity are recorded in CHANGE_LEDGER.md and RH-VAL-004.json after tests complete. This update does not claim hosted CI, Kubernetes runtime, TLS fixture coverage, or new throughput measurements.
+
+## RH-005 final verification (2026-11-08)
+
+The 75-test Java 21 verify run had zero failures, errors or skips, including lease expiry, stale-worker fencing, HTTP outside transactions, lock availability during slow HTTP, migration upgrade/data preservation, retention safety, operations authorization, reconciliation, bounded metrics and single DLQ publication at finalization. The source-built `relayhub:gap-closure` image passed process-kill/replacement recovery, original-payload/idempotency checks and a PostgreSQL logical dump/restore drill. A 60-second local correctness run accepted and delivered 271 additional events, observing zero duplicate receiver acceptances; total committed attempts/acceptances were 272 including the initial recovery event. This is not an endurance or capacity claim.
+
+The isolated recovery containers and network were removed. Compose configuration and Kubernetes YAML parsing passed. Hosted CI, Kubernetes/CNI runtime enforcement, dedicated TLS fixture coverage, long-duration capacity testing and managed production remain UNVERIFIED. Retention of successful audit is deliberately opt-in; quarantined/dead-letter/uncertain work is preserved for operator disposition. Exact commit/image/JAR identities and suite counts are in RH-VAL-005.json.

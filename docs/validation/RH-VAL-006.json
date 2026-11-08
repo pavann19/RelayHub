@@ -1,0 +1,20 @@
+{
+  "change_id": "RH-006",
+  "validation_id": "RH-VAL-006",
+  "date": "2026-11-08",
+  "scope": "documentation and final evidence tracking only",
+  "implementation_commits": [
+    "0cc7410c978b827f66b539668ec8f49749317102",
+    "cfa7fddea94ae987ed3bf97911b32c35ce74a7f5"
+  ],
+  "checks": [
+    "commit objects exist",
+    "75-test XML totals",
+    "recovery JSON status PASS",
+    "image/JAR digests collected",
+    "isolated recovery resources removed",
+    "Compose config and Kubernetes YAML parsing"
+  ],
+  "status": "PASS",
+  "tests_rerun_for_documentation": false
+}

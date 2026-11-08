@@ -1,0 +1,153 @@
+{
+  "change_id": "RH-005",
+  "validation_id": "RH-VAL-005",
+  "date": "2026-11-08",
+  "scope": "local source, isolated PostgreSQL/Kafka/HTTP fixtures, source-built image",
+  "implementation_commit": "cfa7fddea94ae987ed3bf97911b32c35ce74a7f5",
+  "java": "Temurin 21.0.13",
+  "command": "mvnw -o verify",
+  "status": "PASS",
+  "totals": {
+    "tests": 75,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "suites": [
+    {
+      "name": "com.relayhub.controller.EventIngressControllerTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.relayhub.dispatcher.FailureInjectionAndRecoveryTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.relayhub.dispatcher.PinnedDestinationTest",
+      "tests": 3,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.relayhub.dispatcher.RetryPolicyCalculatorTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.relayhub.dispatcher.WebhookDispatcherTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.relayhub.idempotency.IdempotencyServiceTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.relayhub.integration.AutomaticDeliveryIntegrationTest",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.relayhub.integration.TestcontainersIntegrationTest",
+      "tests": 19,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.relayhub.ratelimit.TokenBucketRateLimiterTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.relayhub.security.ApiKeyHasherTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.relayhub.security.RequestSizeFilterTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.relayhub.security.WebhookTargetPolicyTest",
+      "tests": 2,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    {
+      "name": "com.relayhub.signing.WebhookSignatureTest",
+      "tests": 9,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    }
+  ],
+  "local_jar_sha256": "a1ecfac197746c038cb4f52c96a1b00cd1827095032d2b560720c7caa4044d7a",
+  "source_image": {
+    "tag": "relayhub:gap-closure",
+    "id": "sha256:0b5abbec1a7903cf4c09ecfa81378be2e1a93b63806ecc617f8e5beb498ceff1",
+    "embedded_jar_sha256": "eb7709b4148df53392c834f0afb27804c04db7ed0081eb225199bfd1eb1b3b31",
+    "build": "Dockerfile multi-stage build from current source"
+  },
+  "packaged_recovery": {
+    "status": "PASS",
+    "transport": "direct",
+    "image": "relayhub:gap-closure",
+    "bounded_local_correctness_run": {
+      "duration_seconds": 60,
+      "additional_accepted_events": 271,
+      "delivered": 271,
+      "duplicate_receiver_acceptances": 0,
+      "capacity_claim": false
+    },
+    "backup_restore_verified": true,
+    "accepted_before_process_kill": true,
+    "pending_outbox_before_kill": 1,
+    "delivered_after_replacement": true,
+    "committed_attempts": 272,
+    "receiver_acceptances": 272,
+    "idempotent_response_survived_restart": true,
+    "original_payload_preserved": true,
+    "elapsed_seconds": 89.83
+  },
+  "recovery_test_resources_removed": true,
+  "compose_configuration": "PASS",
+  "kubernetes_yaml_parse": "PASS",
+  "migration_sha256": {
+    "V1__baseline.sql": "ff407b9fbf88f6f72e41d97566e34fdf97353bfadbdae7b4f5d35d494f93075d",
+    "V2__isolate_failed_work.sql": "3d0c68c657961bf8d6492c9bf96562365ab10e32b4471a18b1f0e67bc2a990f8",
+    "V3__delivery_leases.sql": "a9989a1f4712c30befea934ceb8857c0e812dd3aac71556d46bca8123101dff8"
+  },
+  "unverified": [
+    "hosted CI execution",
+    "Kubernetes/CNI enforcement",
+    "long-duration soak or capacity benchmark",
+    "dedicated custom-CA/SNI fixture",
+    "managed-production operations"
+  ],
+  "retention": "Expired idempotency cleanup is automatic; successful event/audit retention is opt-in; quarantine, dead letters and unresolved outcomes are preserved."
+}
