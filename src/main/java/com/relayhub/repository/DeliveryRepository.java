@@ -123,7 +123,7 @@ public class DeliveryRepository {
         );
         jdbcTemplate.update("""
                 INSERT INTO webhook_delivery_attempts (delivery_id, attempt_number, snapshot)
-                SELECT id, attempt_number, to_jsonb(d) FROM webhook_deliveries d WHERE id = ? AND status <> 'PENDING'
+                SELECT id, attempt_number, to_jsonb(d) FROM webhook_deliveries d WHERE id = ? AND status NOT IN ('PENDING', 'CANCELLED')
                 ON CONFLICT (delivery_id, attempt_number) DO NOTHING
                 """, delivery.id());
         return delivery;

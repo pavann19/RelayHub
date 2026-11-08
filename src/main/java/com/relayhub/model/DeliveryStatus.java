@@ -1,6 +1,7 @@
 package com.relayhub.model;
 
 public enum DeliveryStatus {
+    CANCELLED,
     PENDING,
     IN_FLIGHT,
     SUCCESS,

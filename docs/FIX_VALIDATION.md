@@ -65,3 +65,13 @@ A small follow-up hardens the standalone Java signature verifier. Timestamp dist
 The failure requires a correctly signed header; this is replay-window/parser hardening, not evidence of signature forgery or an exposed inbound authentication bypass. The application uses this utility for verification examples/tests; outbound delivery signing is unchanged.
 
 Regression evidence: the expanded signature suite reproduced two failures before the fix, then passed all 9 tests with zero failures/errors/skips on Java 21 (`mvnw -o test -Dtest=WebhookSignatureTest`). Logs: `target/signature-before.log` and `target/signature-after.log`. The earlier 54-test full-suite and packaged-image results above belong to the preceding revision; they were not rerun or rebuilt for this isolated helper change.
+
+## RH-004: high-priority safety and isolation (2026-11-08)
+
+Subscription DELETE now deactivates the subscription; audit rows remain. Pending work for an inactive subscription becomes CANCELLED without an HTTP attempt, and replay is rejected. Repeated outbox failures back off 30 seconds and enter durable quarantine after five failures so later records can progress. Worker transaction failures defer that delivery for 30 seconds. Kafka failures retry twice before the original record is stored in PostgreSQL quarantine; a failed quarantine write prevents successful recovery/offset handling.
+
+Outbound HTTP now pins each connection to the exact policy-approved addresses using Apache HttpClient 5.5.2. The original hostname remains in the URI for Host, TLS certificate verification and SNI. Redirects, automatic HTTP retries and cookies are disabled; a cancellation deadline bounds each request. Network egress restrictions remain defense in depth, rather than compensating for a second unchecked HTTP DNS lookup.
+
+API request bodies are capped at 1 MiB including unknown/chunked lengths. Field limits match database columns; control characters in event types and null bytes in text payloads are rejected. Event replay reports zero when no eligible delivery was queued.
+
+Validation and commit identity are recorded in CHANGE_LEDGER.md and RH-VAL-004.json after tests complete. This update does not claim hosted CI, Kubernetes runtime, TLS fixture coverage, or new throughput measurements.

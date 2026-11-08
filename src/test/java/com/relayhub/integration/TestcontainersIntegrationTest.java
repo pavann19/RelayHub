@@ -183,6 +183,7 @@ public class TestcontainersIntegrationTest {
         };
         new com.relayhub.dispatcher.DurableWorkScheduler(jdbc, transactions, brokenTransport, events, dispatcher).publishPending();
         assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM event_outbox WHERE event_id = ? AND published_at IS NULL", Integer.class, event.id()));
+        jdbc.update("UPDATE event_outbox SET next_attempt_at = CURRENT_TIMESTAMP WHERE event_id = ?", event.id());
         worker().publishPending();
         org.awaitility.Awaitility.await().atMost(java.time.Duration.ofSeconds(15)).untilAsserted(() ->
                 assertEquals(1, deliveries.findByEventId(event.id()).size()));
@@ -223,6 +224,80 @@ public class TestcontainersIntegrationTest {
         org.junit.jupiter.api.Assertions.assertFalse(restarted.tryConsume(tenant, 1).allowed());
         org.awaitility.Awaitility.await().atMost(java.time.Duration.ofSeconds(3)).until(() -> restarted.tryConsume(tenant, 1).allowed());
         assertEquals(3L, jdbc.queryForObject("SELECT usage FROM tenant_rate_limits WHERE tenant_id = ?", Long.class, tenant.id()));
+    }
+
+    @Test
+    void disablingSubscriptionPreservesAuditAndCancelsPendingWork() {
+        var event = com.relayhub.model.Event.create("evt_" + java.util.UUID.randomUUID(), "tenant_default", "disabled", null, "{}");
+        events.save(event);
+        var sub = new com.relayhub.model.Subscription("sub_" + java.util.UUID.randomUUID(), "tenant_default",
+                "https://example.invalid/hook", "secret-test-secret", "disabled", true, 3, 10, 20, 2.0, 500, java.time.Instant.now());
+        subscriptions.save(sub);
+        String id = "del_" + java.util.UUID.randomUUID();
+        deliveries.save(com.relayhub.model.WebhookDelivery.initial(id, event.id(), sub.id(), event.tenantId())
+                .completeSuccess(200, "", "", "ok", 1));
+        assertEquals(1, deliveries.findAttemptSnapshots(id).size());
+        assertTrue(subscriptions.delete(sub.id(), event.tenantId()));
+        assertEquals(1, deliveries.findAttemptSnapshots(id).size());
+        String pendingId = "del_" + java.util.UUID.randomUUID();
+        deliveries.save(com.relayhub.model.WebhookDelivery.initial(pendingId, event.id(), sub.id(), event.tenantId()));
+        assertEquals(com.relayhub.model.DeliveryStatus.CANCELLED, dispatcher.retrySingleDelivery(pendingId).status());
+        assertEquals(0, deliveries.findAttemptSnapshots(pendingId).size());
+        assertEquals(1, deliveries.findAttemptSnapshots(id).size());
+    }
+
+    @Test
+    void failingOutboxItemDoesNotBlockHealthyItem() {
+        String bad = "evt_" + java.util.UUID.randomUUID(), good = "evt_" + java.util.UUID.randomUUID();
+        for (String id : java.util.List.of(bad, good)) {
+            var event = com.relayhub.model.Event.create(id, "tenant_default", "isolation", null, "{}");
+            events.save(event); new com.relayhub.kafka.OutboxEventBus(jdbc).publish(event);
+        }
+        var published = new java.util.ArrayList<String>();
+        var selective = new com.relayhub.kafka.EventBus() {
+            public void publish(com.relayhub.model.Event event) {
+                if (event.id().equals(bad)) throw new IllegalStateException("isolated poison item");
+                published.add(event.id());
+            }
+            public void publishDlq(com.relayhub.model.Event event, String reason) {}
+        };
+        var scheduler = new com.relayhub.dispatcher.DurableWorkScheduler(jdbc, transactions, selective, events, dispatcher);
+        scheduler.publishPending();
+        assertTrue(published.contains(good));
+        assertEquals(1, jdbc.queryForObject("SELECT failure_count FROM event_outbox WHERE event_id = ?", Integer.class, bad));
+        for (int attempt = 0; attempt < 4; attempt++) {
+            jdbc.update("UPDATE event_outbox SET next_attempt_at = CURRENT_TIMESTAMP WHERE event_id = ?", bad);
+            scheduler.publishPending();
+        }
+        assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM event_outbox WHERE event_id = ? AND quarantined_at IS NOT NULL", Integer.class, bad));
+    }
+
+    @Test
+    void poisonKafkaRecordIsDurablyQuarantinedBeforeRecovery() {
+        var handler = new com.relayhub.config.KafkaReliabilityConfig().kafkaErrorHandler(jdbc);
+        var record = new org.apache.kafka.clients.consumer.ConsumerRecord<String,String>("poison-test", 0, 42L, "tenant", "malformed-json");
+        var kafkaConsumer = org.mockito.Mockito.mock(org.apache.kafka.clients.consumer.Consumer.class);
+        var container = org.mockito.Mockito.mock(org.springframework.kafka.listener.MessageListenerContainer.class);
+        // Exercise the configured handler until its bounded backoff invokes the durable recoverer.
+        boolean recovered = false;
+        for (int i = 0; i < 4 && !recovered; i++) recovered = handler.handleOne(new IllegalStateException("bad record"), record, kafkaConsumer, container);
+        assertTrue(recovered);
+        assertEquals("malformed-json", jdbc.queryForObject("SELECT payload FROM kafka_quarantine WHERE topic='poison-test' AND record_offset=42", String.class));
+    }
+
+    @Test
+    void inputLimitsAndEmptyReplayReturnAccurateResponses() throws Exception {
+        assertEquals(400, api("/api/v1/events", INGEST,
+                mapper.writeValueAsString(java.util.Map.of("eventType", "x".repeat(129), "payload", "ok")), null).statusCode());
+        assertEquals(400, api("/api/v1/events", INGEST,
+                "{\"eventType\":\"valid\",\"payload\":{}}", "k".repeat(129)).statusCode());
+        assertEquals(413, api("/api/v1/events", INGEST,
+                mapper.writeValueAsString(java.util.Map.of("eventType", "valid", "payload", "x".repeat(1048576))), null).statusCode());
+        var event = com.relayhub.model.Event.create("evt_" + java.util.UUID.randomUUID(), "tenant_default", "empty", null, "{}");
+        events.save(event);
+        var response = api("/api/v1/deliveries/replay", ADMIN, mapper.writeValueAsString(java.util.Map.of("eventId", event.id())), null);
+        assertEquals(200, response.statusCode());
+        assertEquals(0, mapper.readTree(response.body()).get("replayedCount").asInt());
     }
 
 }

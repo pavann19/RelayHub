@@ -16,3 +16,7 @@ Dead-letter state and the DLQ outbox entry commit with the attempt. Kafka mode p
 ADMIN replay requires an explicit delivery ID, event ID or `replayAllDeadLetters=true`. Only failed/dead-lettered deliveries are eligible. Replay queues work without waiting for downstream HTTP. Successful deliveries are not resent. A manual replay after exhaustion grants one further attempt; cumulative numbering and prior snapshots remain intact.
 
 Delivery is at least once. A crash after remote acceptance and before committing the attempt can cause a duplicate request with the same delivery ID. Exactly-once remote effects and strict delivery ordering are not provided.
+
+### RH-004 behavior update
+
+Subscription deletion disables future delivery and preserves existing audit/history. Cancelled work does not create a fabricated HTTP attempt. Outbox failures use 30-second deferral and quarantine after five failures; Kafka poison records receive two retries then durable database quarantine. Policy-approved DNS addresses are pinned to each outbound connection while hostname verification remains enabled. JSON API bodies are limited to 1 MiB; oversized requests return 413. These rules supersede earlier descriptions of physical subscription deletion, unlimited poison-record retries, or separate unchecked HTTP DNS resolution. See FIX_VALIDATION.md (under docs/) for evidence boundaries.

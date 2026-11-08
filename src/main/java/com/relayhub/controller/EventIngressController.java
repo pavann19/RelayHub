@@ -90,10 +90,14 @@ public class EventIngressController {
                 ? idempotencyKeyHeader.trim()
                 : (request.idempotencyKey() != null ? request.idempotencyKey().trim() : null);
 
+        if (effectiveIdempotencyKey != null && effectiveIdempotencyKey.length() > 128) {
+            throw new IllegalArgumentException("Idempotency-Key must not exceed 128 characters");
+        }
         String payloadJson = request.payload() instanceof String str
                 ? str
                 : objectMapper.writeValueAsString(request.payload());
 
+        if (payloadJson.indexOf('\0') >= 0) throw new IllegalArgumentException("Payload contains a null character");
         // 1. Idempotency Check & Lock Acquisition
         IdempotencyOutcome outcome = idempotencyService.checkOrAcquire(tenantId, effectiveIdempotencyKey, objectMapper.writeValueAsString(List.of(request.eventType(), payloadJson)));
 

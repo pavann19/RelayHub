@@ -70,12 +70,17 @@ public class ReplayController {
                     .filter(e -> e.tenantId().equals(tenantId))
                     .orElseThrow(() -> new IllegalArgumentException("Event not found or unauthorized"));
 
+            boolean queued = false;
             for (WebhookDelivery delivery : deliveryRepository.findByEventId(event.id())) {
                 if (delivery.status() == com.relayhub.model.DeliveryStatus.DEAD_LETTERED
-                        || delivery.status() == com.relayhub.model.DeliveryStatus.FAILED) dispatcher.queueReplay(delivery.id());
+                        || delivery.status() == com.relayhub.model.DeliveryStatus.FAILED) {
+                    dispatcher.queueReplay(delivery.id());
+                    queued = true;
+                }
             }
-            replayedEventIds.add(event.id());
-            return ResponseEntity.ok(new ReplayResponse(1, replayedEventIds, "Event replay queued"));
+            if (queued) replayedEventIds.add(event.id());
+            return ResponseEntity.ok(new ReplayResponse(replayedEventIds.size(), replayedEventIds,
+                    queued ? "Event replay queued" : "No eligible deliveries to replay"));
         }
 
         if (request == null || !Boolean.TRUE.equals(request.replayAllDeadLetters())) {

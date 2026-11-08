@@ -22,7 +22,13 @@ public class WebhookTargetPolicy {
         this.allowPrivate = allowPrivate;
     }
 
-    public void validate(String target) {
+    public void validate(String target) { validateAndResolve(target); }
+
+    protected InetAddress[] resolveHost(String host) throws java.net.UnknownHostException {
+        return InetAddress.getAllByName(host);
+    }
+
+    public InetAddress[] validateAndResolve(String target) {
         try {
             URI uri = URI.create(target);
             String host = uri.getHost();
@@ -32,11 +38,14 @@ public class WebhookTargetPolicy {
                     || !allowedHosts.contains(host.toLowerCase(Locale.ROOT))) {
                 throw new IllegalArgumentException("Webhook target must use an explicitly allowed host and HTTP(S) URL");
             }
-            for (InetAddress address : InetAddress.getAllByName(host)) {
+            InetAddress[] addresses = resolveHost(host);
+            if (addresses.length == 0) throw new IllegalArgumentException("No destination addresses");
+            for (InetAddress address : addresses) {
                 if (!allowPrivate && !isPublic(address)) {
                     throw new IllegalArgumentException("Private or reserved webhook destinations are disabled");
                 }
             }
+            return addresses.clone();
         } catch (java.net.UnknownHostException e) {
             throw new IllegalArgumentException("Webhook hostname could not be resolved", e);
         }

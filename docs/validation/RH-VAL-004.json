@@ -1,0 +1,28 @@
+{
+  "change_id": "RH-004",
+  "validation_id": "RH-VAL-004",
+  "date": "2026-11-08",
+  "java": "21.0.13",
+  "command": "mvnw -o test",
+  "totals": {
+    "tests": 65,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "status": "PASS",
+  "scope": [
+    "audit preservation and cancellation",
+    "outbox failure isolation/quarantine",
+    "Kafka durable recoverer",
+    "pinned HTTP DNS",
+    "request size/field limits",
+    "accurate empty replay count"
+  ],
+  "unverified": [
+    "hosted CI",
+    "Kubernetes enforcement",
+    "TLS/SNI fixture test",
+    "capacity benchmark"
+  ]
+}

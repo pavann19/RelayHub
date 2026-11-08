@@ -36,14 +36,16 @@ public class DurableWorkScheduler {
     @Scheduled(fixedDelayString = "${relayhub.workers.poll-ms:500}")
     public void publishPending() {
         for (int i = 0; i < 25; i++) {
+            long[] selected = {-1};
             try {
                 Boolean processed = transactions.execute(tx -> {
                     List<OutboxRow> rows = jdbc.query("""
                             SELECT id, event_id, kind, reason FROM event_outbox
-                            WHERE published_at IS NULL ORDER BY id LIMIT 1 FOR UPDATE SKIP LOCKED
+                            WHERE published_at IS NULL AND quarantined_at IS NULL AND next_attempt_at <= CURRENT_TIMESTAMP ORDER BY id LIMIT 1 FOR UPDATE SKIP LOCKED
                             """, (rs, n) -> new OutboxRow(rs.getLong(1), rs.getString(2), rs.getString(3), rs.getString(4)));
                     if (rows.isEmpty()) return false;
                     OutboxRow row = rows.getFirst();
+                    selected[0] = row.id();
                     var event = events.findById(row.eventId()).orElseThrow();
                     if (row.kind().equals("EVENT")) transport.publish(event);
                     else transport.publishDlq(event, row.reason());
@@ -52,8 +54,14 @@ public class DurableWorkScheduler {
                 });
                 if (!Boolean.TRUE.equals(processed)) break;
             } catch (Exception e) {
-                log.warn("Outbox publication failed; row remains pending", e);
-                break;
+                if (selected[0] < 0) { log.warn("Outbox selection failed", e); break; }
+                jdbc.update("""
+                        UPDATE event_outbox SET failure_count = failure_count + 1,
+                        next_attempt_at = CURRENT_TIMESTAMP + INTERVAL '30 seconds',
+                        quarantined_at = CASE WHEN failure_count >= 4 THEN CURRENT_TIMESTAMP ELSE NULL END,
+                        last_error = ? WHERE id = ? AND published_at IS NULL
+                        """, e.getClass().getSimpleName(), selected[0]);
+                log.warn("Outbox item {} deferred or quarantined; other work can continue", selected[0], e);
             }
         }
     }
@@ -61,6 +69,7 @@ public class DurableWorkScheduler {
     @Scheduled(fixedDelayString = "${relayhub.workers.poll-ms:500}")
     public void deliverDue() {
         for (int i = 0; i < 25; i++) {
+            String[] selected = {null};
             try {
                 Boolean processed = transactions.execute(tx -> {
                     // Lock the event first everywhere, including Kafka materialization and replay.
@@ -76,13 +85,19 @@ public class DurableWorkScheduler {
                             AND (status = 'PENDING' OR (status = 'RETRYING' AND next_retry_at <= CURRENT_TIMESTAMP))
                             ORDER BY created_at LIMIT 1
                             """, String.class, eventIds.getFirst());
-                    dispatcher.retrySingleDelivery(deliveries.getFirst());
+                    selected[0] = deliveries.getFirst();
+                    dispatcher.retrySingleDelivery(selected[0]);
                     return true;
                 });
                 if (!Boolean.TRUE.equals(processed)) break;
             } catch (Exception e) {
-                log.warn("Delivery transaction failed; durable work remains pending", e);
-                break;
+                if (selected[0] == null) { log.warn("Delivery selection failed", e); break; }
+                jdbc.update("""
+                        UPDATE webhook_deliveries SET status = 'RETRYING',
+                        next_retry_at = CURRENT_TIMESTAMP + INTERVAL '30 seconds', error_message = ?
+                        WHERE id = ? AND status IN ('PENDING', 'RETRYING')
+                        """, "Worker transaction failed: " + e.getClass().getSimpleName(), selected[0]);
+                log.warn("Delivery {} deferred; other work can continue", selected[0], e);
             }
         }
     }

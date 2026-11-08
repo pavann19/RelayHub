@@ -261,6 +261,16 @@ public class WebhookDispatcher {
         Subscription sub = subscriptionRepository.findById(oldDelivery.subscriptionId())
                 .orElseThrow(() -> new IllegalArgumentException("Subscription not found"));
 
+        if (!sub.isActive()) {
+            WebhookDelivery cancelled = new WebhookDelivery(oldDelivery.id(), oldDelivery.eventId(),
+                    oldDelivery.subscriptionId(), oldDelivery.tenantId(), oldDelivery.attemptNumber(),
+                    DeliveryStatus.CANCELLED, oldDelivery.httpStatus(), oldDelivery.requestHeaders(),
+                    oldDelivery.responseHeaders(), oldDelivery.responseBody(), "Subscription disabled",
+                    oldDelivery.latencyMs(), null, oldDelivery.createdAt(), Instant.now());
+            deliveryRepository.save(cancelled);
+            updateAggregateEventStatus(event.id(), deliveryRepository.findByEventId(event.id()));
+            return cancelled;
+        }
         log.info("Retrying delivery {} (current attempt: {})", deliveryId, oldDelivery.attemptNumber() + 1);
         WebhookDelivery newDelivery = executeAttempt(event, sub, oldDelivery.status() == DeliveryStatus.PENDING ? 1 : oldDelivery.attemptNumber() + 1, deliveryId);
         updateAggregateEventStatus(event.id(), deliveryRepository.findByEventId(event.id()));
@@ -272,6 +282,9 @@ public class WebhookDispatcher {
         WebhookDelivery old = deliveryRepository.findById(deliveryId).orElseThrow();
         eventRepository.lock(old.eventId());
         old = deliveryRepository.findById(deliveryId).orElseThrow();
+        if (!subscriptionRepository.findById(old.subscriptionId()).orElseThrow().isActive()) {
+            throw new IllegalArgumentException("Disabled subscriptions cannot be replayed");
+        }
         if (old.status() != DeliveryStatus.DEAD_LETTERED && old.status() != DeliveryStatus.FAILED) {
             throw new IllegalArgumentException("Only failed or dead-lettered deliveries can be replayed");
         }

@@ -13,3 +13,7 @@ The Java HTTP client's DNS lookup is separate from validation. Use outbound fire
 Outbound requests carry `X-RelayHub-Signature: t=<epoch>,v1=<HMAC-SHA256(timestamp.payload)>` and a stable `X-RelayHub-Delivery` ID. Receivers must verify the exact raw payload bytes, timestamp tolerance and signature, and deduplicate delivery IDs. The standalone verifier is in `scripts/verify-signature.py`.
 
 TLS termination, external secret management, egress restrictions, operational key rotation, payload retention/encryption policy and a deployment security review remain operator responsibilities. No production security certification is claimed.
+
+### RH-004 behavior update
+
+Subscription deletion disables future delivery and preserves existing audit/history. Cancelled work does not create a fabricated HTTP attempt. Outbox failures use 30-second deferral and quarantine after five failures; Kafka poison records receive two retries then durable database quarantine. Policy-approved DNS addresses are pinned to each outbound connection while hostname verification remains enabled. JSON API bodies are limited to 1 MiB; oversized requests return 413. These rules supersede earlier descriptions of physical subscription deletion, unlimited poison-record retries, or separate unchecked HTTP DNS resolution. See FIX_VALIDATION.md (under docs/) for evidence boundaries.

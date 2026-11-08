@@ -1,137 +1,81 @@
 package com.relayhub.dispatcher;
 
-import java.io.IOException;
+import com.relayhub.security.WebhookTargetPolicy;
+import java.net.InetAddress;
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.time.Duration;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.Executors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.concurrent.TimeUnit;
+import org.apache.hc.client5.http.DnsResolver;
+import org.apache.hc.client5.http.classic.methods.HttpPost;
+import org.apache.hc.client5.http.config.ConnectionConfig;
+import org.apache.hc.client5.http.config.RequestConfig;
+import org.apache.hc.client5.http.impl.classic.HttpClients;
+import org.apache.hc.client5.http.impl.io.PoolingHttpClientConnectionManagerBuilder;
+import org.apache.hc.core5.http.ContentType;
+import org.apache.hc.core5.http.io.entity.StringEntity;
+import org.apache.hc.core5.util.Timeout;
 import org.springframework.stereotype.Component;
 
+/** Each attempt connects only to the exact addresses approved by the target policy. */
 @Component
 public class HttpWebhookClient implements AutoCloseable {
-
-    private static final Logger log = LoggerFactory.getLogger(HttpWebhookClient.class);
-    private static final int MAX_BODY_PREVIEW_LENGTH = 1024;
-
-    private volatile HttpClient httpClient;
-    private final java.util.concurrent.ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor();
-    private com.relayhub.security.WebhookTargetPolicy targetPolicy = new com.relayhub.security.WebhookTargetPolicy("", false);
+    private WebhookTargetPolicy targetPolicy = new WebhookTargetPolicy("", false);
+    private final java.util.concurrent.ScheduledExecutorService deadlines = Executors.newSingleThreadScheduledExecutor(r -> {
+        Thread thread = new Thread(r, "webhook-deadline"); thread.setDaemon(true); return thread;
+    });
 
     @org.springframework.beans.factory.annotation.Autowired
-    public void setTargetPolicy(com.relayhub.security.WebhookTargetPolicy policy) { this.targetPolicy = policy; }
+    public void setTargetPolicy(WebhookTargetPolicy policy) { this.targetPolicy = policy; }
 
-    public HttpWebhookClient() {
-        this(null);
-    }
-
-    public HttpWebhookClient(HttpClient httpClient) {
-        this.httpClient = httpClient;
-    }
-
-    protected HttpClient getOrCreateClient() {
-        if (this.httpClient == null) {
-            synchronized (this) {
-                if (this.httpClient == null) {
-                    this.httpClient = HttpClient.newBuilder()
-                            .version(HttpClient.Version.HTTP_1_1)
-                            .followRedirects(HttpClient.Redirect.NEVER)
-                            .connectTimeout(Duration.ofSeconds(5))
-                            .executor(executor)
-                            .build();
-                }
-            }
-        }
-        return this.httpClient;
-    }
-
-    public HttpResponseSummary sendWebhook(
-            String targetUrl,
-            String payload,
-            String signatureHeader,
-            String eventType,
-            String deliveryId,
-            int timeoutMs
-    ) {
-        long startTime = System.nanoTime();
+    public HttpResponseSummary sendWebhook(String targetUrl, String payload, String signatureHeader,
+            String eventType, String deliveryId, int timeoutMs) {
+        long start = System.nanoTime();
         try {
-            targetPolicy.validate(targetUrl);
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(targetUrl))
-                    .timeout(Duration.ofMillis(Math.max(500, timeoutMs)))
-                    .header("Content-Type", "application/json")
-                    .header("User-Agent", "RelayHub-Webhook-Delivery/1.0")
-                    .header("X-RelayHub-Signature", signatureHeader)
-                    .header("X-RelayHub-Event", eventType)
-                    .header("X-RelayHub-Delivery", deliveryId)
-                    .POST(HttpRequest.BodyPublishers.ofString(payload))
-                    .build();
-
-            HttpResponse<byte[]> response = getOrCreateClient().send(request, info -> new BoundedBodySubscriber(MAX_BODY_PREVIEW_LENGTH, timeoutMs));
-            long latencyMs = (System.nanoTime() - startTime) / 1_000_000;
-
-            Map<String, String> responseHeaders = new HashMap<>();
-            response.headers().map().forEach((k, v) -> responseHeaders.put(k, String.join(",", v)));
-
-            byte[] bytes = response.body();
-            String bodyPreview = new String(bytes, java.nio.charset.StandardCharsets.UTF_8).replace('\0', '\uFFFD');
-            if (bytes.length == MAX_BODY_PREVIEW_LENGTH) bodyPreview += "... [preview limit]";
-
-            return HttpResponseSummary.success(response.statusCode(), responseHeaders, bodyPreview, latencyMs);
-
-        } catch (IOException | InterruptedException e) {
-            long latencyMs = (System.nanoTime() - startTime) / 1_000_000;
-            if (e instanceof InterruptedException) {
-                Thread.currentThread().interrupt();
-            }
-            log.warn("Webhook delivery failed for target {}: {}", targetUrl, e.getMessage());
-            return HttpResponseSummary.error(0, e.getMessage(), latencyMs);
-        } catch (Exception e) {
-            long latencyMs = (System.nanoTime() - startTime) / 1_000_000;
-            log.error("Unexpected error delivering webhook to {}: {}", targetUrl, e.getMessage());
-            return HttpResponseSummary.error(0, e.getClass().getSimpleName() + ": " + e.getMessage(), latencyMs);
-        }
-    }
-    @Override
-    @jakarta.annotation.PreDestroy
-    public void close() {
-        if (httpClient != null) httpClient.close();
-        executor.shutdown();
-    }
-
-    private static final class BoundedBodySubscriber implements HttpResponse.BodySubscriber<byte[]> {
-        private final int limit;
-        private final java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream();
-        private final java.util.concurrent.CompletableFuture<byte[]> body = new java.util.concurrent.CompletableFuture<>();
-        private java.util.concurrent.Flow.Subscription subscription;
-        BoundedBodySubscriber(int limit, int timeoutMs) {
-            this.limit = limit;
-            body.orTimeout(Math.max(500, timeoutMs), java.util.concurrent.TimeUnit.MILLISECONDS)
-                    .whenComplete((value, error) -> { if (error != null && subscription != null) subscription.cancel(); });
-        }
-        public java.util.concurrent.CompletionStage<byte[]> getBody() { return body; }
-        public void onSubscribe(java.util.concurrent.Flow.Subscription value) { subscription = value; if (body.isDone()) value.cancel(); else value.request(1); }
-        public void onNext(java.util.List<java.nio.ByteBuffer> buffers) {
-            for (var buffer : buffers) {
-                int count = Math.min(buffer.remaining(), limit - bytes.size());
-                byte[] chunk = new byte[count];
-                buffer.get(chunk);
-                bytes.writeBytes(chunk);
-                if (bytes.size() == limit) {
-                    subscription.cancel();
-                    body.complete(bytes.toByteArray());
-                    return;
+            URI target = URI.create(targetUrl);
+            InetAddress[] approved = targetPolicy.validateAndResolve(targetUrl);
+            DnsResolver pinned = new DnsResolver() {
+                public InetAddress[] resolve(String host) throws java.net.UnknownHostException {
+                    if (!host.equalsIgnoreCase(target.getHost())) throw new java.net.UnknownHostException("Unexpected host");
+                    return approved.clone();
                 }
+                public String resolveCanonicalHostname(String host) { return target.getHost(); }
+            };
+            Timeout timeout = Timeout.ofMilliseconds(Math.max(500, timeoutMs));
+            var manager = PoolingHttpClientConnectionManagerBuilder.create().setDnsResolver(pinned)
+                    .setDefaultConnectionConfig(ConnectionConfig.custom().setConnectTimeout(timeout).setSocketTimeout(timeout).build()).build();
+            // Retain hostname in the URI: TLS certificate/hostname verification and SNI remain enabled.
+            try (var client = HttpClients.custom().setConnectionManager(manager).disableRedirectHandling()
+                    .disableAutomaticRetries().disableCookieManagement().build()) {
+                HttpPost request = new HttpPost(target);
+                request.setConfig(RequestConfig.custom().setResponseTimeout(timeout).setConnectionRequestTimeout(timeout).build());
+                request.setHeader("User-Agent", "RelayHub-Webhook-Delivery/1.0");
+                request.setHeader("X-RelayHub-Signature", signatureHeader);
+                request.setHeader("X-RelayHub-Event", eventType);
+                request.setHeader("X-RelayHub-Delivery", deliveryId);
+                request.setEntity(new StringEntity(payload, ContentType.APPLICATION_JSON));
+                var deadline = deadlines.schedule(request::cancel, Math.max(500, timeoutMs), TimeUnit.MILLISECONDS);
+                try {
+                    return client.execute(request, response -> {
+                        var headers = new HashMap<String, String>();
+                        for (var header : response.getHeaders()) headers.merge(header.getName().toLowerCase(java.util.Locale.ROOT), header.getValue(), (a,b) -> a + "," + b);
+                        String preview = "";
+                        if (response.getEntity() != null) {
+                            try (var body = response.getEntity().getContent()) {
+                                byte[] bytes = body.readNBytes(1024);
+                                preview = new String(bytes, java.nio.charset.StandardCharsets.UTF_8).replace('\0', '\uFFFD');
+                                if (bytes.length == 1024) preview += "... [preview limit]";
+                            }
+                        }
+                        return HttpResponseSummary.success(response.getCode(), headers, preview, (System.nanoTime() - start) / 1_000_000);
+                    });
+                } finally { deadline.cancel(false); }
             }
-            subscription.request(1);
+        } catch (Exception error) {
+            return HttpResponseSummary.error(0, error.getClass().getSimpleName(), (System.nanoTime() - start) / 1_000_000);
         }
-        public void onError(Throwable error) { body.completeExceptionally(error); }
-        public void onComplete() { body.complete(bytes.toByteArray()); }
     }
 
+    @Override @jakarta.annotation.PreDestroy
+    public void close() { deadlines.shutdownNow(); }
 }

@@ -26,3 +26,7 @@ The additive schema preserves existing events/deliveries and creates outbox, att
 A restart resumes committed outbox and due-delivery rows. Locks are database transactions, with no process-local ownership lease to repair. Remote acceptance before a sender crash can still produce duplicate requests; consumers must deduplicate stable delivery IDs.
 
 Kubernetes files are reference manifests and have not been runtime-validated by this fix. Configure real secrets, provisioned tenants/keys, allowed hosts, image registry, ingress TLS, outbound network restrictions, backup/retention policy and resource limits before deployment. No public deployment is part of this change.
+
+### RH-004 behavior update
+
+Subscription deletion disables future delivery and preserves existing audit/history. Cancelled work does not create a fabricated HTTP attempt. Outbox failures use 30-second deferral and quarantine after five failures; Kafka poison records receive two retries then durable database quarantine. Policy-approved DNS addresses are pinned to each outbound connection while hostname verification remains enabled. JSON API bodies are limited to 1 MiB; oversized requests return 413. These rules supersede earlier descriptions of physical subscription deletion, unlimited poison-record retries, or separate unchecked HTTP DNS resolution. See FIX_VALIDATION.md (under docs/) for evidence boundaries.

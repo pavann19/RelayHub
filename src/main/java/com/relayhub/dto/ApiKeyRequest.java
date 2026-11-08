@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 public record ApiKeyRequest(
         @NotBlank(message = "name cannot be blank")
         @Schema(description = "Descriptive name for the API key", example = "Production Gateway Ingestion Key")
+        @jakarta.validation.constraints.Size(max = 128)
         String name,
 
         @Schema(description = "Role assigned to this key (ROLE_INGEST, ROLE_ADMIN)", example = "ROLE_INGEST", defaultValue = "ROLE_INGEST")

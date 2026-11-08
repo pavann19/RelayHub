@@ -103,7 +103,7 @@ public class SubscriptionRepository {
 
     public boolean delete(String id, String tenantId) {
         int rows = jdbcTemplate.update(
-                "DELETE FROM subscriptions WHERE id = ? AND tenant_id = ?",
+                "UPDATE subscriptions SET is_active = FALSE WHERE id = ? AND tenant_id = ? AND is_active = TRUE",
                 id, tenantId
         );
         return rows > 0;
