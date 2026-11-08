@@ -1,0 +1,39 @@
+{
+  "change_id": "RH-010",
+  "validation_id": "RH-VAL-010",
+  "scope": "Local dependency and HTTP error hardening; final source-built artifact",
+  "java_verify": {
+    "tests": 84,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "image": "relayhub:rh010-final",
+  "image_id": "sha256:5a55322c2e8f58f1a6838f203beb3a093b98742f6bd27fec9c83e5e38c4e3b41",
+  "image_jar_sha256": "9edbe04417cd3db3a422f87696284a587c0db6385a0c4f6715693cd587f4903c",
+  "windows_jar_sha256": "37722db3c6fbdaf6509e0390c431450f1da1354e6b51d9203caf7edd8f2e7521",
+  "scan": {
+    "scanner": "Trivy 0.76.1",
+    "created_at": "2026-11-08T06:44:37.796961541Z",
+    "severity": [
+      "HIGH",
+      "CRITICAL"
+    ],
+    "ignore_unfixed": false,
+    "reported_findings": 0,
+    "report_sha256": "c9b8794095ba5dc70f5360768e6400e91fc84d5a2859b437aa8f57b6268d9742",
+    "cyclonedx_sha256": "3d382469328f051a85482aeb2d1ce17c16449de1e8c220d3fc79305c142880e7"
+  },
+  "fixed_from_previous_candidate": [
+    "CVE-2026-54399",
+    "CVE-2026-54428",
+    "CVE-2026-108106",
+    "CVE-2026-93451"
+  ],
+  "regressions": [
+    "missing public resource returns 404",
+    "malformed request returns 400 without reflecting payload"
+  ],
+  "hosted_ci": "UNVERIFIED_NO_REMOTE",
+  "production_operation": "NOT_CLAIMED"
+}

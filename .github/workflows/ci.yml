@@ -43,6 +43,12 @@ jobs:
       - name: Verify Docker Container Build
         run: docker build -t relayhub:ci .
 
+      - name: Scan release image and export dependency inventory
+        run: |
+          mkdir -p target/security
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD/target/security:/reports" -v "$PWD/target/trivy-cache:/root/.cache/trivy" aquasec/trivy:0.76.1 image --scanners vuln --format cyclonedx --output /reports/image.cdx.json relayhub:ci
+          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD/target/security:/reports" -v "$PWD/target/trivy-cache:/root/.cache/trivy" aquasec/trivy:0.76.1 image --scanners vuln --severity HIGH,CRITICAL --exit-code 1 --format json --output /reports/findings.json relayhub:ci
+
 
       - name: Verify Packaged Restart and Backup Recovery
         run: python3 scripts/verify-packaged-recovery.py --image relayhub:ci --output target/ci-packaged-recovery.json
@@ -55,3 +61,4 @@ jobs:
           path: |
             target/surefire-reports/
             target/ci-packaged-recovery.json
+            target/security/

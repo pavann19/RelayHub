@@ -402,4 +402,16 @@ public class TestcontainersIntegrationTest {
         assertEquals(403,api("/api/v1/api-keys",key,create,null).statusCode());
     }
 
+    @Test
+    void missingPublicResourceReturns404RatherThanServerError() throws Exception {
+        assertEquals(404,api("/swagger-ui/missing-resource",null,null,null).statusCode());
+    }
+
+    @Test
+    void malformedRequestReturns400WithoutEchoingPayload() throws Exception {
+        var response=api("/api/v1/events",INGEST,"{\"private-marker\":",null);
+        assertEquals(400,response.statusCode());
+        org.junit.jupiter.api.Assertions.assertFalse(response.body().contains("private-marker"));
+    }
+
 }
