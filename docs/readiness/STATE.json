@@ -36,7 +36,8 @@
     "RH-010": "6e82a3b99eaf6988e0a55faebbd3fb46176903ba",
     "RH-011": "d03022923ea656987ec889b4c2ef2efee17393ba",
     "RH-012": "b27b3dc6b5ea6a3ad3c7950bbc504dfd3dbc7094",
-    "RH-013": "b8c0c02291c5b959ecb70917a25d3a4f5ef34f7d"
+    "RH-013": "b8c0c02291c5b959ecb70917a25d3a4f5ef34f7d",
+    "RH-009": "457454b63372f1e09b0739ca793c12b7297de030"
   },
   "cleanup": {
     "owned_validation_cluster": "REMOVED",
@@ -51,5 +52,6 @@
     "Managed secrets/certificates/database/broker/backup restore objectives",
     "Representative long-term load and production SLOs",
     "Higher sustained delivery rates require tuning and measurement"
-  ]
+  ],
+  "tracking_commit_lookup": "git log --format=%H --grep=Change-ID: RH-014"
 }

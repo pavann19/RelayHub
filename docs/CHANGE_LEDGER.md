@@ -16,6 +16,7 @@ Every subsequent change receives a stable `RH-NNN` Change-ID and a corresponding
 | RH-012 | `b27b3dc6b5ea6a3ad3c7950bbc504dfd3dbc7094` | Python receiver signature parser and raw-byte checks | RH-VAL-012 | Seven Python tests at this revision |
 | RH-013 | `b8c0c02291c5b959ecb70917a25d3a4f5ef34f7d` | Restrict private-file permissions before secret writes | RH-VAL-013 | Nine Python tests; real private bootstrap rerun passed |
 | RH-008 | `d21d607d3183ef6680d2a59c88cfc36bfecea2bd` | Hardened patched TLS edge, Calico enforcement, production bootstrap and alert acceptance | RH-VAL-008 | Final 3,000-event failure workload; 229 HTTP 503 attempts recovered; alert firing/resolution; restart/restore; post-resume smoke |
+| RH-009 | `457454b63372f1e09b0739ca793c12b7297de030` | Measured workload ladder, honest capacity boundary, portfolio/interview artifacts and current gap closure | RH-VAL-009 | 5,100 events across four phases; payload/receiver reconciliation; measured latency/backlog/drain |
 
 
 RH-001 and RH-VAL-001 are retrospective tracking IDs; its existing commit message is preserved. Evidence: [RH-VAL-001](validation/fix-validation-2026-11-07.json), [RH-VAL-002](validation/RH-VAL-002.json), and [scope/limitations](FIX_VALIDATION.md).
@@ -43,3 +44,13 @@ RH-005 adds delivery leases, queue/worker observability, opt-in retention, Flywa
 RH-006 records these final identities and the updated gap status. Resolve its own hash with `git log --format="%H %s" --grep="Change-ID: RH-006"`. No implementation hash is rewritten to make a tracking file refer to itself.
 
 RH-008 and RH-009 were reserved for the Kubernetes acceptance and capacity/portfolio workstreams. RH-010 onward track newly discovered gaps fixed while those longer experiments ran. IDs therefore need not follow commit chronological order. Application bytecode is frozen at RH-010; subsequent configuration, helper and evidence changes do not imply a different application JAR. Final stack image identities and measurements are recorded in the RH-008/RH-009 evidence summaries when their acceptance runs complete.
+
+## Final release-candidate identities
+
+- Application source commit: `6e82a3b99eaf6988e0a55faebbd3fb46176903ba`.
+- Final application image ID: `sha256:5a55322c2e8f58f1a6838f203beb3a093b98742f6bd27fec9c83e5e38c4e3b41`.
+- Embedded application JAR SHA-256: `9edbe04417cd3db3a422f87696284a587c0db6385a0c4f6715693cd587f4903c`.
+- Final TLS-edge image ID: `sha256:ec30285e1280b24ded558e46e2025b9d25c9357d417e1707ae10440c1865687c`.
+- Both images passed the stated High/Critical scan; raw scanner/CycloneDX hashes and exact behavioral scopes are in RH-VAL-008 and RH-VAL-010.
+
+RH-014 records final provenance after RH-009 exists. Its own exact hash is resolved by `git log --format="%H" --grep="Change-ID: RH-014"`; it cannot embed its own future Git hash. The final checkout contains only the pre-existing untracked next_task.txt outside committed work. No push occurred, and the dedicated test cluster was cleaned while preserving kind-modelgate and the default context.

@@ -1,0 +1,34 @@
+{
+  "change_id": "RH-014",
+  "validation_id": "RH-VAL-014",
+  "status": "PASS",
+  "scope": "Final local evidence and provenance closure",
+  "implementation_head": "457454b63372f1e09b0739ca793c12b7297de030",
+  "checks": {
+    "evidence_json_parse": "PASS",
+    "ledger_commit_objects": "PASS",
+    "application_source_unchanged_since_RH010": "PASS",
+    "github_workflow_actionlint": "PASS",
+    "git_diff_check": "PASS",
+    "new_commit_secret_scan": "PASS",
+    "owned_cluster_cleanup": "PASS",
+    "existing_cluster_and_context_preserved": "PASS"
+  },
+  "secret_scan": {
+    "range": "a15efa8..457454b",
+    "commits": 7,
+    "reported_leaks": 0,
+    "report_sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570"
+  },
+  "java_tests": 84,
+  "python_tests": 9,
+  "untracked_user_file_preserved": "next_task.txt",
+  "publication": "LOCAL_ONLY_NO_REMOTE_NO_PUSH",
+  "not_claimed": [
+    "Hosted CI",
+    "Managed production",
+    "Multi-node availability",
+    "Long-term endurance",
+    "Sustained 50 rps delivery"
+  ]
+}
