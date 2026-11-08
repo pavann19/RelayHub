@@ -41,13 +41,18 @@ jobs:
         run: python3 -m unittest discover -s scripts -p 'test_*.py'
 
       - name: Verify Docker Container Build
-        run: docker build -t relayhub:ci .
+        run: |
+          docker build -t relayhub:ci .
+          docker build -f deploy/edge/Dockerfile -t relayhub-edge:ci .
 
       - name: Scan release image and export dependency inventory
         run: |
           mkdir -p target/security
-          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD/target/security:/reports" -v "$PWD/target/trivy-cache:/root/.cache/trivy" aquasec/trivy:0.76.1 image --scanners vuln --format cyclonedx --output /reports/image.cdx.json relayhub:ci
-          docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD/target/security:/reports" -v "$PWD/target/trivy-cache:/root/.cache/trivy" aquasec/trivy:0.76.1 image --scanners vuln --severity HIGH,CRITICAL --exit-code 1 --format json --output /reports/findings.json relayhub:ci
+          for image in relayhub:ci relayhub-edge:ci; do
+            name="${image%%:*}"
+            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD/target/security:/reports" -v "$PWD/target/trivy-cache:/root/.cache/trivy" aquasec/trivy:0.76.1 image --scanners vuln --format cyclonedx --output "/reports/$name.cdx.json" "$image"
+            docker run --rm -v /var/run/docker.sock:/var/run/docker.sock -v "$PWD/target/security:/reports" -v "$PWD/target/trivy-cache:/root/.cache/trivy" aquasec/trivy:0.76.1 image --scanners vuln --severity HIGH,CRITICAL --exit-code 1 --format json --output "/reports/$name-findings.json" "$image"
+          done
 
 
       - name: Verify Packaged Restart and Backup Recovery

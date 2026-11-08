@@ -1,0 +1,31 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: relayhub-ingress
+  namespace: relayhub
+spec:
+  podSelector:
+    matchLabels:
+      app: relayhub
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: relayhub-edge
+        - podSelector:
+            matchLabels:
+              app: prometheus
+      ports:
+        - {protocol: TCP, port: 8080}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: relayhub
+  namespace: relayhub
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: relayhub

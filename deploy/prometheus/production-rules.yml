@@ -1,0 +1,39 @@
+groups:
+  - name: relayhub-operations
+    rules:
+      - alert: RelayHubQuarantinedWork
+        expr: relayhub_queue_outbox_quarantined + relayhub_queue_kafka_quarantined > 0
+        for: 15s
+        labels:
+          severity: warning
+        annotations:
+          summary: Durable quarantine needs operator inspection
+          runbook: docs/OPERATIONS.md
+      - alert: RelayHubBacklogAge
+        expr: relayhub_queue_oldest_pending_seconds > 120
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: Oldest unpublished event exceeds two minutes
+      - alert: RelayHubQueueMonitorStale
+        expr: time() - relayhub_queue_refresh_timestamp_seconds > 30
+        for: 30s
+        labels:
+          severity: warning
+        annotations:
+          summary: Queue monitor cannot refresh its database snapshot
+      - alert: RelayHubScrapeFailed
+        expr: up{job="relayhub"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Application metrics endpoint cannot be scraped
+      - alert: RelayHubScrapeTargetsMissing
+        expr: absent(up{job="relayhub"})
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: No RelayHub application scrape targets discovered

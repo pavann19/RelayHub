@@ -6,4 +6,6 @@ Primary release references: [Apache HttpComponents release news](https://hc.apac
 
 The workflow scans the built image with Trivy 0.76.1 and fails on any reported High/Critical finding, including advisories without fixes. It exports a CycloneDX inventory and vulnerability report as artifacts. See validation/RH-VAL-010.json for the locally measured final result and artifact identities. Hosted workflow execution remains a separate gate until an authorized remote is configured.
 
+RH-008 additionally replaces the superseded stock NGINX image, which failed the same severity gate. The edge image installs only NGINX and signed distribution patches on Alpine 3.24. Both application and edge images are built and scanned in CI. The local edge scan and final stack acceptance are recorded separately in RH-VAL-008; the first functional workload on the superseded edge remains historical evidence.
+
 A clean scan is time-bound dependency evidence, not proof of exploit absence, application security certification, or a reason to stop patching. Rebuild from reviewed image digests, rescan before publishing and monitor newly disclosed advisories. TLS verification and application authorization have separate behavioral tests.

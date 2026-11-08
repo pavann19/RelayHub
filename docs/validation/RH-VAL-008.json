@@ -1,0 +1,193 @@
+{
+  "change_id": "RH-008",
+  "validation_id": "RH-VAL-008",
+  "status": "PASS",
+  "application_source_commit": "6e82a3b99eaf6988e0a55faebbd3fb46176903ba",
+  "application_artifact_reference": "RH-VAL-010.json",
+  "edge_image": "relayhub-edge:release-candidate",
+  "edge_image_id": "sha256:ec30285e1280b24ded558e46e2025b9d25c9357d417e1707ae10440c1865687c",
+  "edge_version": "nginx/1.30.6",
+  "edge_scan": {
+    "scanner": "Trivy 0.76.1",
+    "severity": [
+      "HIGH",
+      "CRITICAL"
+    ],
+    "ignore_unfixed": false,
+    "reported_findings": 0,
+    "report_sha256": "a37208b6abbd301798e863b90b3f5451925986263bdddca2b6cdb96b64e0363f",
+    "cyclonedx_sha256": "ed5266d0e341417cb4bd8597ccca96633e87d115258a282ff2ab87a52d361dec"
+  },
+  "environment": {
+    "server": "v1.31.0",
+    "evidence_capture_client": "v1.31.0",
+    "cni": "Calico v3.29.3",
+    "nodes": 1,
+    "application_replicas": 2,
+    "edge_replicas": 1,
+    "transport": "direct",
+    "scope": "Pinned local compatibility fixture; not hosted or multi-node availability"
+  },
+  "running_artifacts": [
+    {
+      "app": "relayhub",
+      "image": "docker.io/library/relayhub:rh010-final",
+      "image_id": "docker.io/library/import-2026-11-08@sha256:5a55322c2e8f58f1a6838f203beb3a093b98742f6bd27fec9c83e5e38c4e3b41"
+    },
+    {
+      "app": "relayhub",
+      "image": "docker.io/library/relayhub:rh010-final",
+      "image_id": "docker.io/library/import-2026-11-08@sha256:5a55322c2e8f58f1a6838f203beb3a093b98742f6bd27fec9c83e5e38c4e3b41"
+    },
+    {
+      "app": "relayhub-edge",
+      "image": "docker.io/library/relayhub-edge:release-candidate",
+      "image_id": "docker.io/library/import-2026-11-08@sha256:ec30285e1280b24ded558e46e2025b9d25c9357d417e1707ae10440c1865687c"
+    }
+  ],
+  "workload": {
+    "validation_id": "RH-VAL-008",
+    "status": "PASS",
+    "transport": "direct",
+    "image": "relayhub:rh010-final",
+    "scope": "local single-node Kind, Calico, two application replicas; not hosted HA/capacity",
+    "production_security": "PASS",
+    "calico_egress_deny_allow_deny": "PASS",
+    "calico_ingress_denied_unapproved_source": "PASS",
+    "run_id": "0e52cffe190e4b129c4073a941800d6c",
+    "requested_seconds": 600,
+    "elapsed_seconds": 601.724,
+    "target_requests_per_second": 5,
+    "unique_accepted": 3000,
+    "rpc_attempts": 3000,
+    "initial_status_counts": {
+      "201": 3000
+    },
+    "retries": 0,
+    "database_events": 8100,
+    "successful_deliveries": 8100,
+    "receiver_unique": 5100,
+    "receiver_acceptance_attempts": 5100,
+    "receiver_unique_this_run": 3000,
+    "receiver_acceptance_attempts_this_run": 3000,
+    "payload_sequence_readback": "PASS",
+    "latency_seconds": {
+      "p50": 0.028102700000090408,
+      "p95": 0.0497657000014442,
+      "p99": 0.07687159999841242,
+      "max": 1.1171358999999939
+    },
+    "receiver_503_seconds": 12,
+    "application_pod_replacement": true,
+    "idempotency_replay_and_mismatch": "PASS"
+  },
+  "observed_503_attempts_this_run": 229,
+  "alerts": {
+    "validation_id": "RH-VAL-008-alerts",
+    "status": "PASS",
+    "scraped_application_replicas": 2,
+    "firing_notification_received_seconds": 25.962,
+    "resolved_notification_received": true,
+    "credentials": "restricted OBSERVE key mounted from Secret"
+  },
+  "bootstrap": {
+    "validation_id": "RH-VAL-010-bootstrap",
+    "status": "PASS",
+    "image": "relayhub:rh010-final",
+    "fresh_migration_no_seed": "PASS",
+    "published_demo_key_startup_rejected": "PASS",
+    "preview_read_only": true,
+    "private_roles": [
+      "ADMIN",
+      "INGEST",
+      "OBSERVE"
+    ],
+    "demo_keys_explicitly_revoked": 2,
+    "overwrite_refused_without_database_writes": true,
+    "migrations_idempotent_after_private_bootstrap": true,
+    "migration_mode": "non-web; exited successfully with workers environment enabled"
+  },
+  "packaged_process_kill_and_backup_restore": {
+    "status": "PASS",
+    "transport": "direct",
+    "image": "relayhub:rh010-final",
+    "backup_restore_verified": true,
+    "accepted_before_process_kill": true,
+    "pending_outbox_before_kill": 1,
+    "delivered_after_replacement": true,
+    "committed_attempts": 1,
+    "receiver_acceptances": 1,
+    "idempotent_response_survived_restart": true,
+    "original_payload_preserved": true,
+    "elapsed_seconds": 30.86
+  },
+  "post_experiment_resume": {
+    "fixture_containers_restarted_after_completed_workloads": true,
+    "in_memory_receiver_history_reset": true,
+    "preserved_completed_workload_reports": true,
+    "persisted_database_events": 13200
+  },
+  "historical_experiments": {
+    "stock_edge_image": "nginx:1.28-alpine",
+    "stock_edge_status": "FAILED_SECURITY_GATE_SUPERSEDED",
+    "stock_edge_baseline": "target/readiness/historical-stock-edge-kubernetes.json",
+    "stock_edge_capacity": "target/readiness/historical-stock-edge-capacity.json",
+    "initial_tls_fixture_and_disabled_doc_checks": "Failed initial runs corrected before final acceptance"
+  },
+  "not_claimed": [
+    "hosted CI",
+    "multi-node availability",
+    "HPA runtime",
+    "production capacity",
+    "long-term endurance",
+    "managed disaster recovery"
+  ],
+  "post_resume_smoke": {
+    "status": "PASS",
+    "readiness": 200,
+    "accepted": 201,
+    "event_id": "evt_21805325-0556-46ea-b264-33f767609b8a",
+    "verified_https_hmac_delivery": "SUCCESS"
+  },
+  "post_resume_alert_recheck": {
+    "validation_id": "RH-VAL-008-alerts",
+    "status": "PASS",
+    "scraped_application_replicas": 2,
+    "firing_notification_received_seconds": 27.546,
+    "resolved_notification_received": true,
+    "credentials": "restricted OBSERVE key mounted from Secret"
+  },
+  "manifest_server_dry_run": "PASS",
+  "workload_comparison_basis": "Per-run deltas; earlier workloads remain in PostgreSQL and receiver history reset between historical experiments.",
+  "rpc_archive_sha256": "96a35451d2d11a6a9adbacc1da924d374b5b1bd0447244e86c995977a8cfe6bb",
+  "rpc_samples": [
+    {
+      "run_id": "0e52cffe190e4b129c4073a941800d6c",
+      "index": 0,
+      "status": 201,
+      "seconds": 0.0319405000000188,
+      "event_id": "evt_e94f5fa9-1c7c-4438-ba40-04858eae808b"
+    },
+    {
+      "run_id": "0e52cffe190e4b129c4073a941800d6c",
+      "index": 1,
+      "status": 201,
+      "seconds": 0.03748840000025666,
+      "event_id": "evt_f769482e-4da2-46f8-94be-394bd97722a0"
+    },
+    {
+      "run_id": "0e52cffe190e4b129c4073a941800d6c",
+      "index": 2998,
+      "status": 201,
+      "seconds": 0.026444299999639043,
+      "event_id": "evt_b8ba7dae-4d08-4a57-9901-3e6643c22287"
+    },
+    {
+      "run_id": "0e52cffe190e4b129c4073a941800d6c",
+      "index": 2999,
+      "status": 201,
+      "seconds": 0.027708999999958905,
+      "event_id": "evt_5d905941-6c62-4a5e-a2e2-406cac3a8b32"
+    }
+  ]
+}

@@ -6,4 +6,8 @@ Before applying the app, create `relayhub-secrets` in namespace `relayhub` with 
 
 The application pods use a read-only root filesystem, writable bounded `/tmp`, no service-account token, dropped capabilities and the runtime-default seccomp profile. An ingress NetworkPolicy permits only the TLS edge and Prometheus. The egress policy permits DNS, PostgreSQL/Kafka and public IPv4 HTTPS. Modify policy for approved private endpoints or node-local DNS and verify it with the real CNI.
 
+`11-tls-edge.yaml` provides an NGINX TLS edge on service port 443. Provision `relayhub-edge-tls` externally with `tls.crt` and `tls.key`, configure the real hostname, and expose it through the target environment's load balancer. The edge runs without root privileges on 8443, has bounded body/time limits, and forwards only to the internal application service. Pin release images by reviewed digest before publishing. This manifest does not provision public DNS, certificates or a managed load balancer.
+
 PostgreSQL and Kafka manifests are single-instance development reference infrastructure, **not an HA database/broker claim**. HPA needs a metrics-server. A two-replica application on a single local node demonstrates rollout and pod replacement, not multi-node availability. See `docs/readiness/` for measured local verification and remaining hosted-environment gates.
+
+The reference application pool is capped at eight connections per replica, matching local acceptance. The HPA ceiling is eight replicas, so application pools budget at most 64 database connections before migration/admin/monitoring use. Recalculate against the target PostgreSQL connection limit and validate autoscaling; this arithmetic is a configuration bound, not a measured eight-replica capacity claim.
