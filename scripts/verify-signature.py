@@ -8,8 +8,9 @@ import hmac
 import hashlib
 import time
 import sys
+import re
 
-def verify_relayhub_signature(signature_header: str, raw_payload: str, shared_secret: str, tolerance_seconds: int = 300) -> bool:
+def verify_relayhub_signature(signature_header: str, raw_payload: str | bytes, shared_secret: str, tolerance_seconds: int = 300) -> bool:
     """
     Verifies that the incoming webhook payload was authentically signed by RelayHub.
     
@@ -22,30 +23,41 @@ def verify_relayhub_signature(signature_header: str, raw_payload: str, shared_se
     Returns:
         True if signature is valid and within tolerance window, False otherwise.
     """
-    if not signature_header or not raw_payload or not shared_secret:
+    if not signature_header or raw_payload is None or not shared_secret or tolerance_seconds < 0:
         return False
         
-    parts = dict(part.strip().split('=', 1) for part in signature_header.split(',') if '=' in part)
+    parts = {}
+    for part in signature_header.split(','):
+        if '=' not in part:
+            continue
+        name, value = (value.strip() for value in part.split('=', 1))
+        if name in ('t', 'v1') and name in parts:
+            return False
+        parts[name] = value
     timestamp_str = parts.get('t')
     signature = parts.get('v1')
     
-    if not timestamp_str or not signature:
+    if not timestamp_str or not signature or not re.fullmatch(r'[0-9a-f]{64}', signature):
+        return False
+    if not re.fullmatch(r'[+-]?[0-9]{1,19}', timestamp_str):
         return False
         
     try:
         timestamp = int(timestamp_str)
     except ValueError:
         return False
+    if not -(2**63) <= timestamp < 2**63:
+        return False
         
     current_time = int(time.time())
     if abs(current_time - timestamp) > tolerance_seconds:
-        print(f"[REJECTED] Timestamp outside tolerance window: delta={abs(current_time - timestamp)}s > {tolerance_seconds}s")
         return False
         
-    signed_payload = f"{timestamp}.{raw_payload}"
+    payload_bytes = raw_payload if isinstance(raw_payload, bytes) else raw_payload.encode('utf-8')
+    signed_payload = str(timestamp).encode('ascii') + b'.' + payload_bytes
     expected_hmac = hmac.new(
         shared_secret.encode('utf-8'),
-        signed_payload.encode('utf-8'),
+        signed_payload,
         hashlib.sha256
     ).hexdigest()
     

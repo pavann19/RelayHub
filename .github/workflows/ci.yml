@@ -37,8 +37,8 @@ jobs:
       - name: Run Unit and Live Integration Tests
         run: ./mvnw clean verify --batch-mode
 
-      - name: Verify credential bootstrap safety
-        run: python3 scripts/test_bootstrap_credentials.py
+      - name: Verify credential bootstrap and receiver signature safety
+        run: python3 -m unittest discover -s scripts -p 'test_*.py'
 
       - name: Verify Docker Container Build
         run: docker build -t relayhub:ci .

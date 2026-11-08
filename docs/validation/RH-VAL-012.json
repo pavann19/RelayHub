@@ -1,0 +1,11 @@
+{
+  "change_id": "RH-012",
+  "validation_id": "RH-VAL-012",
+  "status": "PASS",
+  "scope": "Python receiver verification helper and CI invocation; application JAR unchanged",
+  "python_suite": {"tests": 7, "failures": 0},
+  "new_signature_tests": 5,
+  "checks": ["exact raw bytes and text", "empty payload", "tamper rejection", "duplicate signed-field rejection", "expired/future/extreme timestamps", "negative tolerance", "non-ASCII malformed signatures fail without exceptions"],
+  "java_suite_unchanged": 84,
+  "application_source_commit": "6e82a3b99eaf6988e0a55faebbd3fb46176903ba"
+}
