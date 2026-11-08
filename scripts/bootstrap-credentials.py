@@ -34,6 +34,19 @@ def sql_plan(tenant, name, revoke_demo=False):
     return "\n".join(statements), keys
 
 
+def write_private_json(path, value):
+    # On Windows, restrict the empty file before writing any raw credentials.
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+    with os.fdopen(descriptor, "w") as output:
+        if os.name == "nt":
+            principal = subprocess.check_output(["whoami"], text=True).strip()
+            subprocess.run(["icacls", str(path), "/inheritance:r", "/grant:r", principal + ":F"],
+                           check=True, capture_output=True)
+        output.write(json.dumps(value, indent=2) + "\n")
+        output.flush()
+        os.fsync(output.fileno())
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--container", required=True)
@@ -55,16 +68,8 @@ def main():
         parser.error("--output is required with --apply")
     args.output.parent.mkdir(parents=True, exist_ok=True)
     # Reserve output exclusively before touching the database; refuse accidental overwrite.
-    descriptor = os.open(args.output, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     try:
-        with os.fdopen(descriptor, "w") as output:
-            output.write(json.dumps({"tenant": args.tenant, "keys": keys}, indent=2) + "\n")
-            output.flush()
-            os.fsync(output.fileno())
-        if os.name == "nt":
-            principal = subprocess.check_output(["whoami"], text=True).strip()
-            subprocess.run(["icacls", str(args.output), "/inheritance:r", "/grant:r", principal + ":F"],
-                           check=True, capture_output=True)
+        write_private_json(args.output, {"tenant": args.tenant, "keys": keys})
         subprocess.run(["docker", "exec", "-i", args.container, "psql", "-v", "ON_ERROR_STOP=1", "-U",
                         args.db_user, "-d", args.database], input=plan.encode(), check=True, capture_output=True)
     except Exception:

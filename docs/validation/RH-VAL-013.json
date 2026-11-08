@@ -1,0 +1,12 @@
+{
+  "change_id": "RH-013",
+  "validation_id": "RH-VAL-013",
+  "status": "PASS",
+  "scope": "Private credential-file creation; application JAR unchanged",
+  "python_suite": {"tests": 9, "failures": 0},
+  "windows_acl_before_secret_write": "PASS",
+  "acl_failure_leaves_file_empty": "PASS",
+  "real_packaged_bootstrap_rerun": "PASS",
+  "checks": ["fresh Flyway migration with no demo seeding", "production refuses active demo keys", "preview does not write", "explicit demo revocation and private provisioning", "overwrite refusal preserves database", "migration validates after provisioning"],
+  "application_source_commit": "6e82a3b99eaf6988e0a55faebbd3fb46176903ba"
+}
