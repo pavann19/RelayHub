@@ -1,0 +1,19 @@
+{
+  "change_id": "RH-011",
+  "validation_id": "RH-VAL-011",
+  "status": "PASS",
+  "scope": "Local Compose configuration; service runtime not rerun for binding-only edit",
+  "published_ports": 8,
+  "all_bind_loopback": true,
+  "services": [
+    "grafana",
+    "kafka",
+    "mock-receiver",
+    "postgres",
+    "prometheus",
+    "redis",
+    "relayhub",
+    "relayhub-2"
+  ],
+  "application_artifact_unchanged": true
+}
