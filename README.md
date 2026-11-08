@@ -75,3 +75,7 @@ See [current fix validation](docs/FIX_VALIDATION.md) for fresh checks and limita
 ### RH-004 behavior update
 
 Subscription deletion disables future delivery and preserves existing audit/history. Cancelled work does not create a fabricated HTTP attempt. Outbox failures use 30-second deferral and quarantine after five failures; Kafka poison records receive two retries then durable database quarantine. Policy-approved DNS addresses are pinned to each outbound connection while hostname verification remains enabled. JSON API bodies are limited to 1 MiB; oversized requests return 413. These rules supersede earlier descriptions of physical subscription deletion, unlimited poison-record retries, or separate unchecked HTTP DNS resolution. See FIX_VALIDATION.md (under docs/) for evidence boundaries.
+
+### RH-005 operations update
+
+Runtime delivery now uses fenced leases with HTTP outside database transactions. Abandoned claims remain auditable as UNKNOWN and expired leases recover automatically. Flyway validates versioned schema migrations; existing unversioned databases require an explicit baseline opt-in after backup. ADMIN operations APIs inspect/release quarantined outbox work and reconcile legacy pending events. Queue gauges have bounded dimensions, and successful-event retention is opt-in. See [operations and recovery](docs/OPERATIONS.md) for exact policies and deployment boundaries.

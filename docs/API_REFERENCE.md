@@ -21,3 +21,12 @@ Ingestion returns 201 after durable database commit. An idempotent replay return
 Subscription fields include targetUrl, optional secret (16–255 characters), comma-separated eventTypes, maxRetries (maximum total attempts) and timeoutMs. The operator must allow the destination host before registration. A generated signing secret is returned by subscription APIs; restrict admin credential access accordingly.
 
 Replay bodies contain a deliveryId, eventId, or `replayAllDeadLetters:true`. Empty bodies do not trigger bulk replay. `subscriptionId` filtering is not supported. Bulk/event replay skips successful deliveries. Standard validation errors return 400, permission failures 403, and rate/quota exhaustion 429.
+
+### Operations APIs (ADMIN only)
+
+- `GET /api/v1/operations/outbox-quarantine`: up to 100 tenant-owned items.
+- `POST /api/v1/operations/outbox-quarantine/{id}/retry`: actual queued count, zero when ineligible.
+- `GET /api/v1/operations/legacy-pending`: preview tenant-owned events missing publication/delivery work.
+- `POST /api/v1/operations/legacy-pending/reconcile`: queue at most 100 missing intents without duplicates.
+
+Subscription DELETE now deactivates delivery without deleting audit. A future worker claim becomes CANCELLED; a request already in flight can complete. Pending delivery attempt number is zero until an attempt is claimed. Lease claims, including UNKNOWN outcomes, are preserved separately from completed HTTP snapshots.

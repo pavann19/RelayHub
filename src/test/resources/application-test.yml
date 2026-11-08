@@ -5,7 +5,7 @@ spring:
   sql:
     init:
       mode: always
-      schema-locations: classpath:schema.sql
+      schema-locations: classpath:empty.sql
       data-locations: classpath:data.sql
       continue-on-error: false
 

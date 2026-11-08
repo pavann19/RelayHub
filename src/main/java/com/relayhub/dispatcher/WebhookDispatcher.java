@@ -73,6 +73,12 @@ public class WebhookDispatcher {
 
     @org.springframework.transaction.annotation.Transactional
     public WebhookDelivery executeAttempt(Event event, Subscription sub, int attemptNumber, String existingDeliveryId) {
+        WebhookDelivery delivery = computeAttempt(event, sub, attemptNumber, existingDeliveryId);
+        persistAttempt(event, delivery);
+        return delivery;
+    }
+
+    public WebhookDelivery computeAttempt(Event event, Subscription sub, int attemptNumber, String existingDeliveryId) {
         String deliveryId = existingDeliveryId != null ? existingDeliveryId : "del_" + UUID.randomUUID();
         String signatureHeader = signer.generateSignatureHeader(event.payload(), sub.secret());
 
@@ -167,7 +173,6 @@ public class WebhookDispatcher {
                 );
                 metrics.recordWebhookDelivery(event.tenantId(), sub.id(), status, "DEAD_LETTER");
                 metrics.recordDlqEvent(event.tenantId(), "429_RETRIES_EXHAUSTED");
-                eventBus.publishDlq(event, "Downstream 429 retries exhausted");
                 log.error("Webhook delivery {} dead-lettered after {} attempts (HTTP 429)", deliveryId, attemptNumber);
             }
         }
@@ -192,7 +197,6 @@ public class WebhookDispatcher {
             );
             metrics.recordWebhookDelivery(event.tenantId(), sub.id(), status, "DEAD_LETTER");
             metrics.recordDlqEvent(event.tenantId(), "CLIENT_ERROR_" + status);
-            eventBus.publishDlq(event, "Downstream non-retryable HTTP " + status);
             log.warn("Webhook delivery {} immediately dead-lettered due to non-retryable client error HTTP {}", deliveryId, status);
         }
         // 4. HTTP 5xx or Connection Failure (status == 0)
@@ -239,13 +243,17 @@ public class WebhookDispatcher {
                 );
                 metrics.recordWebhookDelivery(event.tenantId(), sub.id(), status, "DEAD_LETTER");
                 metrics.recordDlqEvent(event.tenantId(), "SERVER_ERROR_RETRIES_EXHAUSTED");
-                eventBus.publishDlq(event, "Downstream 5xx/network errors exhausted max retries");
                 log.error("Webhook delivery {} dead-lettered after {} attempts. Last error: {}", deliveryId, attemptNumber, errorMsg);
             }
         }
 
-        deliveryRepository.save(delivery);
         return delivery;
+    }
+
+    public void persistAttempt(Event event, WebhookDelivery delivery) {
+        deliveryRepository.save(delivery);
+        if (delivery.status() == DeliveryStatus.DEAD_LETTERED) eventBus.publishDlq(event, delivery.errorMessage());
+        updateAggregateEventStatus(event.id(), deliveryRepository.findByEventId(event.id()));
     }
 
     @org.springframework.transaction.annotation.Transactional
@@ -300,7 +308,7 @@ public class WebhookDispatcher {
             return;
         }
 
-        boolean anyRetrying = deliveries.stream().anyMatch(d -> d.status() == DeliveryStatus.RETRYING || d.status() == DeliveryStatus.PENDING);
+        boolean anyRetrying = deliveries.stream().anyMatch(d -> d.status() == DeliveryStatus.RETRYING || d.status() == DeliveryStatus.PENDING || d.status() == DeliveryStatus.IN_FLIGHT);
         boolean allSuccess = deliveries.stream().allMatch(d -> d.status() == DeliveryStatus.SUCCESS);
         boolean anySuccess = deliveries.stream().anyMatch(d -> d.status() == DeliveryStatus.SUCCESS);
         boolean allDead = deliveries.stream().allMatch(d -> d.status() == DeliveryStatus.DEAD_LETTERED);

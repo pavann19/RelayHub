@@ -22,6 +22,16 @@ public class DurableWorkScheduler {
     private final EventBus transport;
     private final EventRepository events;
     private final WebhookDispatcher dispatcher;
+    private DeliveryLeaseWorker leaseWorker;
+    private io.micrometer.core.instrument.MeterRegistry registry;
+    @org.springframework.beans.factory.annotation.Autowired
+    public void setRegistry(io.micrometer.core.instrument.MeterRegistry value) { this.registry = value; }
+    private void recordFailure(String worker) {
+        if (registry != null) registry.counter("relayhub_worker_failures_total", "worker", worker).increment();
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
+    public void setLeaseWorker(DeliveryLeaseWorker worker) { this.leaseWorker = worker; }
 
     public DurableWorkScheduler(JdbcTemplate jdbc, TransactionTemplate transactions,
             @Qualifier("transportEventBus") EventBus transport, EventRepository events,
@@ -54,6 +64,7 @@ public class DurableWorkScheduler {
                 });
                 if (!Boolean.TRUE.equals(processed)) break;
             } catch (Exception e) {
+                recordFailure("outbox");
                 if (selected[0] < 0) { log.warn("Outbox selection failed", e); break; }
                 jdbc.update("""
                         UPDATE event_outbox SET failure_count = failure_count + 1,
@@ -71,26 +82,17 @@ public class DurableWorkScheduler {
         for (int i = 0; i < 25; i++) {
             String[] selected = {null};
             try {
-                Boolean processed = transactions.execute(tx -> {
-                    // Lock the event first everywhere, including Kafka materialization and replay.
-                    List<String> eventIds = jdbc.queryForList("""
-                            SELECT e.id FROM events e WHERE EXISTS (
-                                SELECT 1 FROM webhook_deliveries d WHERE d.event_id = e.id
-                                AND (d.status = 'PENDING' OR (d.status = 'RETRYING' AND d.next_retry_at <= CURRENT_TIMESTAMP)))
-                            ORDER BY e.created_at LIMIT 1 FOR UPDATE OF e SKIP LOCKED
-                            """, String.class);
-                    if (eventIds.isEmpty()) return false;
-                    List<String> deliveries = jdbc.queryForList("""
-                            SELECT id FROM webhook_deliveries WHERE event_id = ?
-                            AND (status = 'PENDING' OR (status = 'RETRYING' AND next_retry_at <= CURRENT_TIMESTAMP))
-                            ORDER BY created_at LIMIT 1
-                            """, String.class, eventIds.getFirst());
-                    selected[0] = deliveries.getFirst();
-                    dispatcher.retrySingleDelivery(selected[0]);
-                    return true;
-                });
-                if (!Boolean.TRUE.equals(processed)) break;
+                List<String> ids = jdbc.queryForList("""
+                        SELECT id FROM webhook_deliveries WHERE status = 'PENDING'
+                        OR (status IN ('RETRYING', 'IN_FLIGHT') AND next_retry_at <= CURRENT_TIMESTAMP)
+                        ORDER BY COALESCE(next_retry_at, created_at), id LIMIT 1
+                        """, String.class);
+                if (ids.isEmpty()) break;
+                selected[0] = ids.getFirst();
+                if (leaseWorker == null) throw new IllegalStateException("Delivery lease worker is required");
+                leaseWorker.process(selected[0]);
             } catch (Exception e) {
+                recordFailure("delivery");
                 if (selected[0] == null) { log.warn("Delivery selection failed", e); break; }
                 jdbc.update("""
                         UPDATE webhook_deliveries SET status = 'RETRYING',

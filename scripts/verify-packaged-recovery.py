@@ -36,6 +36,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--image", default="relayhub:fix-validation")
     parser.add_argument("--output", default="target/packaged-recovery.json")
+    parser.add_argument("--soak-seconds", type=int, default=0, help="Bounded local correctness run; not a capacity benchmark")
     parser.add_argument("--jar", help="Mount a freshly verified JAR read-only into the runtime image")
     args = parser.parse_args()
     prefix = "relayhub-recovery-" + uuid.uuid4().hex[:10]
@@ -128,8 +129,40 @@ HTTPServer(('0.0.0.0', 8080), Receiver).serve_forever()
         status, duplicate = api(base, "/api/v1/events", ingest,
                                 {"eventType": "restart.test", "payload": {"value": 1}}, prefix)
         assert status == 201 and duplicate["eventId"] == event_id
-        report.update(status="PASS", accepted_before_process_kill=True, pending_outbox_before_kill=1,
-                      delivered_after_replacement=True, committed_attempts=1, receiver_acceptances=1,
+        expected_attempts = 1
+        if args.soak_seconds > 0:
+            deadline = time.monotonic() + args.soak_seconds
+            accepted_events = []
+            while time.monotonic() < deadline:
+                sequence = len(accepted_events)
+                status, accepted_event = api(base, "/api/v1/events", ingest,
+                                             {"eventType": "restart.test", "payload": {"sequence": sequence}},
+                                             f"{prefix}-soak-{sequence}")
+                assert status == 201
+                accepted_events.append(accepted_event["eventId"])
+                time.sleep(0.2)
+            expected_attempts += len(accepted_events)
+            wait_for(lambda: int(sql("SELECT count(*) FROM events WHERE status='DELIVERED'")) == expected_attempts)
+            assert int(sql("SELECT count(*) FROM webhook_delivery_attempts")) == expected_attempts
+            accepted_lines = [line for line in docker("logs", receiver).splitlines() if line.startswith("ACCEPTED ")]
+            assert len(accepted_lines) == expected_attempts
+            assert len(set(accepted_lines)) == expected_attempts
+            report["bounded_local_correctness_run"] = {"duration_seconds": args.soak_seconds,
+                "additional_accepted_events": len(accepted_events), "delivered": len(accepted_events),
+                "duplicate_receiver_acceptances": 0, "capacity_claim": False}
+        # Verify a real logical backup can be restored into another disposable database.
+        dump = subprocess.run(["docker", "exec", database, "pg_dump", "-U", "recovery", "-d", "recovery"],
+                              check=True, capture_output=True).stdout
+        docker("exec", database, "createdb", "-U", "recovery", "restored")
+        subprocess.run(["docker", "exec", "-i", database, "psql", "-v", "ON_ERROR_STOP=1", "-U", "recovery", "-d", "restored"],
+                       input=dump, check=True, capture_output=True)
+        restored_attempts = docker("exec", database, "psql", "-U", "recovery", "-d", "restored", "-Atc",
+                                   "SELECT count(*) FROM webhook_delivery_attempts")
+        assert int(restored_attempts) == expected_attempts
+        assert docker("exec", database, "psql", "-U", "recovery", "-d", "restored", "-Atc",
+                      "SELECT count(*) FROM flyway_schema_history WHERE success") == "3"
+        report.update(status="PASS", backup_restore_verified=True, accepted_before_process_kill=True, pending_outbox_before_kill=1,
+                      delivered_after_replacement=True, committed_attempts=expected_attempts, receiver_acceptances=expected_attempts,
                       idempotent_response_survived_restart=True, original_payload_preserved=True)
     finally:
         for name in reversed(containers):

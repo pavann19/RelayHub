@@ -40,4 +40,21 @@ class PinnedDestinationTest {
             assertEquals(0, client.sendWebhook("http://pinned.invalid:8080/", "{}", "sig", "test", "delivery", 500).statusCode());
         }
     }
+    @Test void boundsSlowResponseWithAttemptDeadline() throws Exception {
+        var server=HttpServer.create(new InetSocketAddress("127.0.0.1",0),0);
+        server.createContext("/",request->{
+            request.getRequestBody().readAllBytes();request.sendResponseHeaders(200,2);
+            try { Thread.sleep(2000); request.getResponseBody().write("ok".getBytes()); }
+            catch(InterruptedException error){Thread.currentThread().interrupt();} catch(java.io.IOException ignored){}
+            finally{request.close();}
+        });server.start();
+        try(var client=new HttpWebhookClient()){
+            client.setTargetPolicy(new WebhookTargetPolicy("127.0.0.1",true));
+            long start=System.nanoTime();
+            var result=client.sendWebhook("http://127.0.0.1:"+server.getAddress().getPort()+"/","{}","sig","test","deadline",500);
+            assertEquals(0,result.statusCode());
+            assertTrue((System.nanoTime()-start)/1_000_000<1800);
+        }finally{server.stop(0);}
+    }
+
 }

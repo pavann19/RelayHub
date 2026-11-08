@@ -136,6 +136,7 @@ class AutomaticDeliveryIntegrationTest {
         // A second worker competes with the real Spring scheduler using the same persisted rows.
         EventBus direct = new com.relayhub.kafka.DirectDispatchEventBus(new org.springframework.beans.factory.support.StaticListableBeanFactory(java.util.Map.of("dispatcher", dispatcher)).getBeanProvider(WebhookDispatcher.class));
         var second = new DurableWorkScheduler(jdbc, transactions, direct, events, dispatcher);
+        second.setLeaseWorker(leaseWorker);
         try (var pool = java.util.concurrent.Executors.newFixedThreadPool(2)) {
             var one = pool.submit(second::publishPending);
             var two = pool.submit(second::deliverDue);
@@ -184,4 +185,57 @@ class AutomaticDeliveryIntegrationTest {
         assertEquals(deliveryIds.get(path + ":1"), deliveryIds.get(path + ":2"));
         assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM webhook_delivery_attempts WHERE delivery_id = ?", Integer.class, id));
     }
+    @Autowired com.relayhub.dispatcher.DeliveryLeaseWorker leaseWorker;
+
+    @Test void httpAttemptDoesNotHoldEventLockAndExpiredLeaseIsRecovered() throws Exception {
+        String path = "/lease-" + UUID.randomUUID();
+        String tenantId = "tenant_" + UUID.randomUUID();
+        tenants.save(Tenant.of(tenantId, "Lease recovery", TenantTier.PRO));
+        Event event = Event.create("evt_" + UUID.randomUUID(), tenantId, "lease", null, "{}");
+        events.save(event.withStatus(EventStatus.PROCESSING));
+        var sub = new Subscription("sub_" + UUID.randomUUID(), tenantId, url(path), "secret-test-secret",
+                "lease", true, 3, 50, 100, 2.0, 1000, Instant.now());
+        subscriptions.save(sub);
+        String id = "del_" + UUID.randomUUID(), token = UUID.randomUUID().toString();
+        jdbc.update("""
+                INSERT INTO webhook_deliveries(id,event_id,subscription_id,tenant_id,attempt_number,status,next_retry_at,claim_token)
+                VALUES (?,?,?,?,1,'IN_FLIGHT',CURRENT_TIMESTAMP - INTERVAL '1 minute',?)
+                """, id, event.id(), sub.id(), tenantId, token);
+        jdbc.update("INSERT INTO webhook_delivery_claims(token,delivery_id,attempt_number,lease_until) VALUES (?,?,1,CURRENT_TIMESTAMP - INTERVAL '1 minute')", token,id);
+        await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> assertEquals(DeliveryStatus.SUCCESS, deliveries.findById(id).orElseThrow().status()));
+        assertEquals("UNKNOWN", jdbc.queryForObject("SELECT outcome FROM webhook_delivery_claims WHERE token=?", String.class,token));
+        assertEquals(2, deliveries.findById(id).orElseThrow().attemptNumber());
+    }
+
+    @Test void databaseEventLockIsAvailableDuringSlowHttp() throws Exception {
+        var entered = new java.util.concurrent.CountDownLatch(1);
+        var release = new java.util.concurrent.CountDownLatch(1);
+        var slow = HttpServer.create(new InetSocketAddress("127.0.0.1", 0), 0);
+        slow.createContext("/", exchange -> {
+            exchange.getRequestBody().readAllBytes(); entered.countDown();
+            try { release.await(4, java.util.concurrent.TimeUnit.SECONDS); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+            exchange.sendResponseHeaders(200,2); exchange.getResponseBody().write("ok".getBytes()); exchange.close();
+        });
+        slow.start();
+        try {
+            String tenantId = "tenant_" + UUID.randomUUID();
+            tenants.save(Tenant.of(tenantId,"Slow HTTP",TenantTier.PRO));
+            Event event = Event.create("evt_" + UUID.randomUUID(), tenantId,"slow",null,"{}");
+            events.save(event.withStatus(EventStatus.PROCESSING));
+            var sub = new Subscription("sub_" + UUID.randomUUID(),tenantId,"http://127.0.0.1:"+slow.getAddress().getPort()+"/",
+                    "secret-test-secret","slow",true,3,50,100,2.0,5000,Instant.now());
+            subscriptions.save(sub);
+            String id="del_"+UUID.randomUUID();
+            deliveries.save(WebhookDelivery.initial(id,event.id(),sub.id(),tenantId));
+            assertTrue(entered.await(5,java.util.concurrent.TimeUnit.SECONDS));
+            transactions.executeWithoutResult(tx -> {
+                jdbc.execute("SET LOCAL lock_timeout='500ms'");
+                events.lock(event.id());
+            });
+            assertEquals(DeliveryStatus.IN_FLIGHT, deliveries.findById(id).orElseThrow().status());
+            release.countDown();
+            await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> assertEquals(DeliveryStatus.SUCCESS,deliveries.findById(id).orElseThrow().status()));
+        } finally { release.countDown(); slow.stop(0); }
+    }
+
 }

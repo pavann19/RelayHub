@@ -300,4 +300,95 @@ public class TestcontainersIntegrationTest {
         assertEquals(0, mapper.readTree(response.body()).get("replayedCount").asInt());
     }
 
+    @Test
+    void operationsAreAdminOnlyAndTenantScoped() throws Exception {
+        assertEquals(403,api("/api/v1/operations/outbox-quarantine",INGEST,null,null).statusCode());
+        var event=com.relayhub.model.Event.create("evt_"+java.util.UUID.randomUUID(),"tenant_default","ops",null,"{}");
+        events.save(event); new com.relayhub.kafka.OutboxEventBus(jdbc).publish(event);
+        Long id=jdbc.queryForObject("SELECT id FROM event_outbox WHERE event_id=?",Long.class,event.id());
+        jdbc.update("UPDATE event_outbox SET quarantined_at=CURRENT_TIMESTAMP,failure_count=5 WHERE id=?",id);
+        var response=api("/api/v1/operations/outbox-quarantine/"+id+"/retry",ADMIN,"{}",null);
+        assertEquals(1,mapper.readTree(response.body()).get("queued").asInt());
+        assertEquals(0,mapper.readTree(api("/api/v1/operations/outbox-quarantine/"+id+"/retry",ADMIN,"{}",null).body()).get("queued").asInt());
+    }
+
+    @Test
+    void retentionIsOptInAndProtectsPendingAndDeadLetterWork() {
+        String good="evt_"+java.util.UUID.randomUUID(), pending="evt_"+java.util.UUID.randomUUID(), dead="evt_"+java.util.UUID.randomUUID();
+        for(String id:java.util.List.of(good,pending,dead)) {
+            events.save(com.relayhub.model.Event.create(id,"tenant_default","retention",null,"{}"));
+            jdbc.update("UPDATE events SET created_at=CURRENT_TIMESTAMP-INTERVAL '100 days' WHERE id=?",id);
+        }
+        events.updateStatus(good,com.relayhub.model.EventStatus.DELIVERED);
+        events.updateStatus(dead,com.relayhub.model.EventStatus.DEAD_LETTERED);
+        new com.relayhub.repository.RetentionMaintenance(jdbc,transactions,false,90).clean();
+        assertTrue(events.findById(good).isPresent());
+        new com.relayhub.repository.RetentionMaintenance(jdbc,transactions,true,90).clean();
+        org.junit.jupiter.api.Assertions.assertTrue(events.findById(good).isEmpty());
+        assertTrue(events.findById(pending).isPresent()); assertTrue(events.findById(dead).isPresent());
+    }
+
+    @Test
+    void queueMetricsHaveBoundedLabelsAndExposeQuarantine() {
+        var registry=new io.micrometer.core.instrument.simple.SimpleMeterRegistry();
+        var monitor=new com.relayhub.metrics.QueueHealthMonitor(jdbc,registry);
+        monitor.refresh();
+        assertTrue(registry.get("relayhub_queue_refresh_timestamp_seconds").gauge().value()>0);
+        var metrics=new com.relayhub.metrics.RelayHubMetrics(registry);
+        for(int i=0;i<100;i++) metrics.recordDeliveryLatency("tenant"+i,"sub"+i,1);
+        assertEquals(1L,registry.getMeters().stream().filter(m->m.getId().getName().equals("relayhub_webhook_delivery_latency_seconds")).count());
+    }
+
+    @Test
+    void versionedMigrationsValidateAndUpgradeALegacySchemaWithoutLosingRows() {
+        String schema="legacy_"+java.util.UUID.randomUUID().toString().replace("-", "");
+        jdbc.execute("CREATE SCHEMA "+schema);
+        try {
+            try(var connection=java.sql.DriverManager.getConnection(postgres.getJdbcUrl(),postgres.getUsername(),postgres.getPassword())) {
+                connection.setSchema(schema);
+                org.springframework.jdbc.datasource.init.ScriptUtils.executeSqlScript(connection,
+                        new org.springframework.core.io.ClassPathResource("db/migration/V1__baseline.sql"));
+                try(var statement=connection.createStatement()) { statement.execute("INSERT INTO tenants(id,name) VALUES ('preserved','Legacy tenant')"); }
+            } catch(java.sql.SQLException error) { throw new RuntimeException(error); }
+            var flyway=org.flywaydb.core.Flyway.configure().dataSource(jdbc.getDataSource()).schemas(schema)
+                    .defaultSchema(schema).baselineOnMigrate(true).baselineVersion("1").load();
+            flyway.migrate(); flyway.validate();
+            assertEquals("Legacy tenant",jdbc.queryForObject("SELECT name FROM "+schema+".tenants WHERE id='preserved'",String.class));
+            assertEquals(3,jdbc.queryForObject("SELECT max(version::int) FROM "+schema+".flyway_schema_history WHERE success=true",Integer.class));
+        } finally { jdbc.execute("DROP SCHEMA "+schema+" CASCADE"); }
+    }
+
+    @Test
+    void legacyPendingReconciliationQueuesOnlyMissingWorkOnce() throws Exception {
+        var event=com.relayhub.model.Event.create("evt_"+java.util.UUID.randomUUID(),"tenant_default","legacy",null,"{}");
+        events.save(event);
+        assertEquals(403,api("/api/v1/operations/legacy-pending/reconcile",INGEST,"{}",null).statusCode());
+        assertEquals(200,api("/api/v1/operations/legacy-pending",ADMIN,null,null).statusCode());
+        assertEquals(200,api("/api/v1/operations/legacy-pending/reconcile",ADMIN,"{}",null).statusCode());
+        assertEquals(200,api("/api/v1/operations/legacy-pending/reconcile",ADMIN,"{}",null).statusCode());
+        assertEquals(1,jdbc.queryForObject("SELECT count(*) FROM event_outbox WHERE event_id=?",Integer.class,event.id()));
+    }
+
+    @Test
+    void staleLeaseCannotFinalizeAndHttpComputationRunsOutsideTransaction() {
+        var event=com.relayhub.model.Event.create("evt_"+java.util.UUID.randomUUID(),"tenant_default","fence",null,"{}");
+        events.save(event);
+        var sub=new com.relayhub.model.Subscription("sub_"+java.util.UUID.randomUUID(),"tenant_default","https://example.invalid/",
+                "secret-test-secret","fence",true,3,10,20,2.0,500,java.time.Instant.now());
+        subscriptions.save(sub);
+        String id="del_"+java.util.UUID.randomUUID();
+        deliveries.save(com.relayhub.model.WebhookDelivery.initial(id,event.id(),sub.id(),event.tenantId()));
+        var fake=org.mockito.Mockito.mock(com.relayhub.dispatcher.WebhookDispatcher.class);
+        org.mockito.Mockito.when(fake.computeAttempt(org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.anyInt(),org.mockito.ArgumentMatchers.eq(id)))
+                .thenAnswer(invocation -> {
+                    org.junit.jupiter.api.Assertions.assertFalse(org.springframework.transaction.support.TransactionSynchronizationManager.isActualTransactionActive());
+                    jdbc.update("UPDATE webhook_deliveries SET claim_token='replacement' WHERE id=?",id);
+                    return com.relayhub.model.WebhookDelivery.initial(id,event.id(),sub.id(),event.tenantId()).completeSuccess(200,"","","ok",1);
+                });
+        new com.relayhub.dispatcher.DeliveryLeaseWorker(jdbc,transactions,events,deliveries,subscriptions,fake).process(id);
+        org.mockito.Mockito.verify(fake,org.mockito.Mockito.never()).persistAttempt(org.mockito.ArgumentMatchers.any(),org.mockito.ArgumentMatchers.any());
+        assertEquals("replacement",jdbc.queryForObject("SELECT claim_token FROM webhook_deliveries WHERE id=?",String.class,id));
+        assertEquals(0,deliveries.findAttemptSnapshots(id).size());
+    }
+
 }

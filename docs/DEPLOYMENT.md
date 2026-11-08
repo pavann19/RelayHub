@@ -30,3 +30,7 @@ Kubernetes files are reference manifests and have not been runtime-validated by 
 ### RH-004 behavior update
 
 Subscription deletion disables future delivery and preserves existing audit/history. Cancelled work does not create a fabricated HTTP attempt. Outbox failures use 30-second deferral and quarantine after five failures; Kafka poison records receive two retries then durable database quarantine. Policy-approved DNS addresses are pinned to each outbound connection while hostname verification remains enabled. JSON API bodies are limited to 1 MiB; oversized requests return 413. These rules supersede earlier descriptions of physical subscription deletion, unlimited poison-record retries, or separate unchecked HTTP DNS resolution. See FIX_VALIDATION.md (under docs/) for evidence boundaries.
+
+### Current upgrade procedure
+
+See OPERATIONS.md for Flyway V1–V3 adoption, mandatory backup review, `RELAYHUB_BASELINE_EXISTING` opt-in, tenant-scoped pending-event reconciliation and retention settings. Schema SQL is now versioned under `src/main/resources/db/migration/`; the old unversioned `schema.sql` startup path is removed. Public credentials in an existing database are not silently revoked; provision a private admin key and revoke the demo keys explicitly.

@@ -19,10 +19,14 @@ spring:
       connection-timeout: 10000
       idle-timeout: 30000
       max-lifetime: 1800000
+  flyway:
+    baseline-on-migrate: ${RELAYHUB_BASELINE_EXISTING:false}
+    baseline-version: 0
+    validate-on-migrate: true
   sql:
     init:
       mode: always
-      schema-locations: classpath:schema.sql
+      schema-locations: classpath:empty.sql
       data-locations: ${RELAYHUB_SEED_LOCATION:classpath:empty.sql}
       continue-on-error: false
 

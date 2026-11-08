@@ -15,3 +15,7 @@ Trade-off: each attempt holds a database connection and event lock during the bo
 ### RH-004 behavior update
 
 Subscription deletion disables future delivery and preserves existing audit/history. Cancelled work does not create a fabricated HTTP attempt. Outbox failures use 30-second deferral and quarantine after five failures; Kafka poison records receive two retries then durable database quarantine. Policy-approved DNS addresses are pinned to each outbound connection while hostname verification remains enabled. JSON API bodies are limited to 1 MiB; oversized requests return 413. These rules supersede earlier descriptions of physical subscription deletion, unlimited poison-record retries, or separate unchecked HTTP DNS resolution. See FIX_VALIDATION.md (under docs/) for evidence boundaries.
+
+### Current lease implementation (RH-005)
+
+The runtime scheduler now claims delivery work briefly, releases its connection/locks before HTTP, and finalizes under a fencing token. `webhook_delivery_claims` preserves uncertain outcomes on lease expiry. Thus the older HTTP-inside-transaction limitation above describes the preceding revision. Logical backup/restore, bounded optional successful-event retention, migration checksums and queue health are described in OPERATIONS.md.

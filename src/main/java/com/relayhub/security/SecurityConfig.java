@@ -70,7 +70,7 @@ public class SecurityConfig {
                                 "/"
                         ).permitAll()
                         .requestMatchers("/actuator/**").hasRole("ADMIN")
-                        .requestMatchers("/api/v1/api-keys/**", "/api/v1/subscriptions/**", "/api/v1/deliveries/replay/**").hasRole("ADMIN")
+                        .requestMatchers("/api/v1/operations/**", "/api/v1/api-keys/**", "/api/v1/subscriptions/**", "/api/v1/deliveries/replay/**").hasRole("ADMIN")
                         .requestMatchers("/api/**").hasAnyRole("INGEST", "ADMIN")
                         .anyRequest().permitAll()
                 )

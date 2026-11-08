@@ -105,6 +105,7 @@ class WebhookDispatcherTest {
         assertEquals(DeliveryStatus.DEAD_LETTERED, delivery.status());
         assertEquals(404, delivery.httpStatus());
         assertTrue(eventBus.dlqPublished.contains(event.id()), "Must publish to DLQ");
+        assertEquals(1, eventBus.dlqPublished.size());
     }
 
     @Test
@@ -129,6 +130,17 @@ class WebhookDispatcherTest {
 
         assertEquals(DeliveryStatus.DEAD_LETTERED, delivery.status());
         assertTrue(eventBus.dlqPublished.contains(event.id()), "Must publish to DLQ on max retries");
+    }
+
+    @Test
+    void computesClientFailureWithoutPublishingOrPersistingUntilFinalization() {
+        httpClient.nextResponse = HttpResponseSummary.success(404, Map.of(), "Not Found", 1);
+        WebhookDelivery computed = dispatcher.computeAttempt(event, subscription, 1, null);
+        assertEquals(DeliveryStatus.DEAD_LETTERED, computed.status());
+        assertTrue(eventBus.dlqPublished.isEmpty());
+        assertTrue(deliveryRepository.map.isEmpty());
+        dispatcher.persistAttempt(event, computed);
+        assertEquals(1, eventBus.dlqPublished.size());
     }
 
     private static class FakeHttpWebhookClient extends HttpWebhookClient {

@@ -35,9 +35,14 @@ jobs:
         run: docker build -t relayhub:ci .
 
 
+      - name: Verify Packaged Restart and Backup Recovery
+        run: python3 scripts/verify-packaged-recovery.py --image relayhub:ci --output target/ci-packaged-recovery.json
+
       - name: Preserve Test Results
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: test-results
-          path: target/surefire-reports/
+          path: |
+            target/surefire-reports/
+            target/ci-packaged-recovery.json

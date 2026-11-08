@@ -25,7 +25,7 @@ public record WebhookDelivery(
                 eventId,
                 subscriptionId,
                 tenantId,
-                1,
+                0,
                 DeliveryStatus.PENDING,
                 null,
                 null,
