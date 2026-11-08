@@ -9,6 +9,13 @@ Every subsequent change receives a stable `RH-NNN` Change-ID and a corresponding
 | RH-003 | `28c43d2` | Tracking ledger | RH-VAL-003 | Commit references/XML/JSON verified |
 | RH-004 | `0cc7410c978b827f66b539668ec8f49749317102` | Audit, quarantine, DNS pinning, input limits, replay accuracy | RH-VAL-004 | 65 tests passed |
 | RH-005 | `cfa7fddea94ae987ed3bf97911b32c35ce74a7f5` | Fenced leases, metrics, retention, migrations, operational recovery | RH-VAL-005 | 75 tests; source image; restart/backup restore; bounded correctness run passed |
+| RH-006 | `a15efa822edea145738b329c9b7b0d6006aebbf1` | Prior evidence and gap tracking | RH-VAL-006 | Historical artifact identities preserved |
+| RH-007 | `792559c7339bc04b503a42664a693d70aa73feb5` | Production profile, TLS fixtures, OBSERVE role and explicit private bootstrap | RH-VAL-007 | 82 Java tests and two bootstrap tests; superseded image had later-discovered dependencies patched by RH-010 |
+| RH-010 | `6e82a3b99eaf6988e0a55faebbd3fb46176903ba` | HttpCore/Snappy fixes and correct HTTP client-error statuses | RH-VAL-010 | 84 Java tests; final source-built application image; zero reported High/Critical findings |
+| RH-011 | `d03022923ea656987ec889b4c2ef2efee17393ba` | Loopback-only local demo ports | RH-VAL-011 | All eight published bindings verified from resolved Compose configuration |
+| RH-012 | `b27b3dc6b5ea6a3ad3c7950bbc504dfd3dbc7094` | Python receiver signature parser and raw-byte checks | RH-VAL-012 | Seven Python tests at this revision |
+| RH-013 | `b8c0c02291c5b959ecb70917a25d3a4f5ef34f7d` | Restrict private-file permissions before secret writes | RH-VAL-013 | Nine Python tests; real private bootstrap rerun passed |
+| RH-008 | `d21d607d3183ef6680d2a59c88cfc36bfecea2bd` | Hardened patched TLS edge, Calico enforcement, production bootstrap and alert acceptance | RH-VAL-008 | Final 3,000-event failure workload; 229 HTTP 503 attempts recovered; alert firing/resolution; restart/restore; post-resume smoke |
 
 
 RH-001 and RH-VAL-001 are retrospective tracking IDs; its existing commit message is preserved. Evidence: [RH-VAL-001](validation/fix-validation-2026-11-07.json), [RH-VAL-002](validation/RH-VAL-002.json), and [scope/limitations](FIX_VALIDATION.md).
@@ -34,3 +41,5 @@ RH-005 adds delivery leases, queue/worker observability, opt-in retention, Flywa
 - [Full evidence](validation/RH-VAL-005.json). Final source-image recovery included 271 additional accepted/delivered events over 60 seconds, no duplicate receiver acceptances observed, and a real logical backup restore.
 
 RH-006 records these final identities and the updated gap status. Resolve its own hash with `git log --format="%H %s" --grep="Change-ID: RH-006"`. No implementation hash is rewritten to make a tracking file refer to itself.
+
+RH-008 and RH-009 were reserved for the Kubernetes acceptance and capacity/portfolio workstreams. RH-010 onward track newly discovered gaps fixed while those longer experiments ran. IDs therefore need not follow commit chronological order. Application bytecode is frozen at RH-010; subsequent configuration, helper and evidence changes do not imply a different application JAR. Final stack image identities and measurements are recorded in the RH-008/RH-009 evidence summaries when their acceptance runs complete.

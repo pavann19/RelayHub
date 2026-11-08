@@ -17,15 +17,15 @@ Important environment variables:
 | RELAYHUB_WORKERS_ENABLED | Durable workers; default true |
 | RELAYHUB_SEED_LOCATION | Empty SQL by default; local demo may select data.sql |
 
-Metrics require an admin key. The bundled Prometheus configuration uses the public local-demo admin credential; replace it with a protected credential for any real deployment. Health probes remain public.
+Metrics require OBSERVE or ADMIN. The local-demo Prometheus configuration uses a published demo credential; production.yml reads a restricted OBSERVE token from a mounted file. Health probes remain public. Select the production profile and follow PRODUCTION_PROFILE.md for private credential provisioning and migration-only jobs.
 
 ## Upgrade and recovery
 
 The additive schema preserves existing events/deliveries and creates outbox, attempt-history and shared-limiter tables. Historical delivery attempts cannot be reconstructed from overwritten rows. Existing pre-upgrade PENDING events may have no publication intent; inspect/reconcile them explicitly before claiming complete recovery. Existing idempotency records use the old hash format until their recorded expiry; do not silently delete them during an upgrade. Previously seeded demo keys remain in an existing database and must be explicitly revoked before exposing it.
 
-A restart resumes committed outbox and due-delivery rows. Locks are database transactions, with no process-local ownership lease to repair. Remote acceptance before a sender crash can still produce duplicate requests; consumers must deduplicate stable delivery IDs.
+A restart resumes committed outbox and due-delivery rows. Delivery claims have expiring fenced leases; HTTP runs outside the database transaction. Expiry preserves an uncertain attempt and permits another worker to recover. Remote acceptance before a sender crash can still produce duplicate requests; consumers must deduplicate stable delivery IDs.
 
-Kubernetes files are reference manifests and have not been runtime-validated by this fix. Configure real secrets, provisioned tenants/keys, allowed hosts, image registry, ingress TLS, outbound network restrictions, backup/retention policy and resource limits before deployment. No public deployment is part of this change.
+Kubernetes files are reference manifests. See readiness/STATE.json and validation/ for the exact local validation status. Configure real secrets, provisioned tenants/keys, allowed hosts, image registry, TLS certificates, outbound network restrictions, backup/retention policy and resource limits for the target environment. PostgreSQL/Kafka references are single-instance infrastructure. HPA requires metrics-server and target-load validation. No public deployment is part of this change.
 
 ### RH-004 behavior update
 
@@ -33,4 +33,4 @@ Subscription deletion disables future delivery and preserves existing audit/hist
 
 ### Current upgrade procedure
 
-See OPERATIONS.md for Flyway V1–V3 adoption, mandatory backup review, `RELAYHUB_BASELINE_EXISTING` opt-in, tenant-scoped pending-event reconciliation and retention settings. Schema SQL is now versioned under `src/main/resources/db/migration/`; the old unversioned `schema.sql` startup path is removed. Public credentials in an existing database are not silently revoked; provision a private admin key and revoke the demo keys explicitly.
+See OPERATIONS.md for Flyway V1â€“V3 adoption, mandatory backup review, `RELAYHUB_BASELINE_EXISTING` opt-in, tenant-scoped pending-event reconciliation and retention settings. Schema SQL is now versioned under `src/main/resources/db/migration/`; the old unversioned `schema.sql` startup path is removed. Public credentials in an existing database are not silently revoked; provision a private admin key and revoke the demo keys explicitly.

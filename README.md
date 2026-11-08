@@ -2,6 +2,8 @@
 
 RelayHub is a Java 21 / Spring Boot 4 webhook delivery project. It accepts tenant events, stores publication work in PostgreSQL, optionally routes notifications through Kafka, and delivers signed HTTP webhooks through a durable worker.
 
+Start with the [portfolio case study](docs/PORTFOLIO_CASE_STUDY.md), [interview walkthrough](docs/INTERVIEW_GUIDE.md), [production profile](docs/PRODUCTION_PROFILE.md) and [local change ledger](docs/CHANGE_LEDGER.md). Evidence is scoped to named artifacts and local experiments; hosted and production gates are tracked separately.
+
 ## Current architecture
 
 ```mermaid
@@ -70,7 +72,9 @@ Idempotent replays return the original response/status with `Idempotent-Replay: 
 
 ## Verification and deployment status
 
-See [current fix validation](docs/FIX_VALIDATION.md) for fresh checks and limitations. [Historical evidence](docs/EVIDENCE.md) is retained separately. Existing load-test scripts are workload definitions, not current performance measurements. No managed production, Kubernetes runtime, throughput or latency claim is made by this revision.
+The current release candidate passes 84 Java tests and nine Python checks. Both final application and TLS-edge images pass the High/Critical dependency gate. Local Kind/Calico acceptance covers strict HTTPS/HMAC delivery, network-policy enforcement, private bootstrap, process replacement, logical restore and actual alert firing/resolution. A final ten-minute workload delivered all 3,000 accepted events; the measured ladder and its saturation boundary are in the [case study](docs/PORTFOLIO_CASE_STUDY.md).
+
+See [current validation](docs/FIX_VALIDATION.md), [remaining release gates](docs/GAP_STATUS.md) and the artifact-scoped JSON summaries. [Historical evidence](docs/EVIDENCE.md) remains separate. Hosted CI, managed production, multi-node availability and long-term endurance remain unverified; local results do not establish production capacity.
 
 [Architecture](docs/ARCHITECTURE.md) · [Security](docs/SECURITY.md) · [Rate limits](docs/RATE_LIMITING_SPEC.md) · [Retry/DLQ](docs/RETRY_AND_DLQ_SPEC.md) · [API](docs/API_REFERENCE.md) · [Deployment](docs/DEPLOYMENT.md)
 

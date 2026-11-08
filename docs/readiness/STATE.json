@@ -1,0 +1,55 @@
+{
+  "objective": "Production-grade portfolio release candidate with measured local evidence and honest hosted/production boundaries",
+  "base_commit": "a15efa8",
+  "status": "LOCAL_RELEASE_CANDIDATE_ACCEPTED",
+  "change_ids": {
+    "RH-007": "TLS and fail-closed deployment/security hardening",
+    "RH-008": "Isolated Kubernetes/CNI/TLS/alert validation",
+    "RH-009": "Reproducible capacity/endurance/failure case study and portfolio handoff",
+    "RH-010": "Newly discovered dependency vulnerabilities and incorrect HTTP errors",
+    "RH-011": "Loopback-only demo exposure",
+    "RH-012": "Python receiver signature checks",
+    "RH-013": "Private ACL before key write",
+    "RH-014": "Final provenance and closure tracking"
+  },
+  "acceptance": {
+    "dedicated_tls_fixtures": "PASS_LOCAL",
+    "secure_bootstrap_and_existing_database_drill": "PASS_LOCAL",
+    "enforcing_cni_and_kubernetes_application": "PASS_LOCAL",
+    "alert_firing_and_receipt": "PASS_LOCAL",
+    "sustained_local_workload_and_failure_recovery": "PASS_LOCAL",
+    "final_suite_image_and_local_commits": "84_JAVA_AND_9_PYTHON_PASS; BOTH_FINAL_IMAGES_SCANNED; LOCAL_COMMITS",
+    "hosted_ci": "BLOCKED_NO_GIT_REMOTE",
+    "public_deployment": "NOT_AUTHORIZED"
+  },
+  "protected_resources": [
+    "existing kind-modelgate cluster",
+    "user existing databases/volumes",
+    "next_task.txt"
+  ],
+  "publication": "local-only until separately approved",
+  "source_commit": "6e82a3b99eaf6988e0a55faebbd3fb46176903ba",
+  "observed_at_utc": "2026-11-08T06:47:09.825395+00:00",
+  "implementation_commits": {
+    "RH-007": "792559c7339bc04b503a42664a693d70aa73feb5",
+    "RH-008": "d21d607d3183ef6680d2a59c88cfc36bfecea2bd",
+    "RH-010": "6e82a3b99eaf6988e0a55faebbd3fb46176903ba",
+    "RH-011": "d03022923ea656987ec889b4c2ef2efee17393ba",
+    "RH-012": "b27b3dc6b5ea6a3ad3c7950bbc504dfd3dbc7094",
+    "RH-013": "b8c0c02291c5b959ecb70917a25d3a4f5ef34f7d"
+  },
+  "cleanup": {
+    "owned_validation_cluster": "REMOVED",
+    "default_context": "kind-modelgate preserved",
+    "user_resources": "UNTOUCHED",
+    "private_local_reports": "PRESERVED_IN_IGNORED_TARGET"
+  },
+  "completed_at_utc": "2026-11-08T10:09:56.009002+00:00",
+  "remaining_release_gates": [
+    "Hosted CI on an authorized remote",
+    "Supported target Kubernetes/CNI, HPA and multi-node failure",
+    "Managed secrets/certificates/database/broker/backup restore objectives",
+    "Representative long-term load and production SLOs",
+    "Higher sustained delivery rates require tuning and measurement"
+  ]
+}

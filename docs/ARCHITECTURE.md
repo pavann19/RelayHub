@@ -4,13 +4,13 @@ The API is a Spring MVC/JDBC service with API-key authentication. PostgreSQL is 
 
 Ingestion commits an event, its idempotency response and an outbox row in one transaction. The outbox worker publishes only committed work. Kafka sends wait for acknowledgement; the outbox row stays pending if publication fails. A crash between acknowledgement and marking publication can duplicate a notification. The direct transport synchronously materializes delivery rows instead of using an in-memory executor queue.
 
-Materialization locks the event, creates pending delivery rows and records aggregate status. Duplicate notifications reuse persisted deliveries. Kafka listener exceptions propagate to an unlimited retry handler, and offsets commit after successful handling. A poison record can therefore block its partition; operational quarantine tooling remains future work.
+Materialization locks the event, creates pending delivery rows and records aggregate status. Duplicate notifications reuse persisted deliveries. Kafka listener exceptions receive two retries before a poison record is durably quarantined in PostgreSQL. A quarantine persistence failure prevents acknowledgement. Outbox failures defer for 30 seconds and quarantine after five failures; ADMIN operations inspect and explicitly release them.
 
-A scheduled worker selects events with pending/due deliveries using `FOR UPDATE SKIP LOCKED`. Event locks serialize materialization, retries and replay across replicas. HTTP attempts and their database result commit in the same worker transaction. A sender crash rolls back state and releases locks, allowing another worker to recover. The external HTTP side effect cannot be rolled back; receivers must deduplicate stable delivery IDs.
+A scheduled worker selects due deliveries and claims each under a fencing token in a short transaction. HTTP runs after the transaction releases its connection and locks. Finalization checks that the token still owns the claim. An expired claim is recorded as UNKNOWN and can be recovered; a stale worker cannot overwrite a new claim's outcome. The external HTTP side effect cannot be rolled back; receivers must deduplicate stable delivery IDs.
 
 Delivery attempts are append-only JSON snapshots keyed by delivery ID and cumulative attempt number. The latest row drives scheduling. Aggregate event status reads all subscriptions' persisted delivery states after a retry.
 
-Trade-off: each attempt holds a database connection and event lock during the bounded HTTP request. The initial scheduler processes bounded batches and is intended for correctness validation, not an unmeasured capacity claim. PostgreSQL row locks also serialize quota updates per tenant. Redis is not used by the runtime limiter.
+The scheduler processes bounded batches. Slow destinations occupy worker time, so fairness, destination isolation and capacity require workload-specific measurement. PostgreSQL row locks serialize quota updates per tenant. Redis is not used by the runtime limiter. Direct mode removes broker infrastructure; Kafka mode adds a partitioned transport while PostgreSQL remains the recovery authority.
 
 ### RH-004 behavior update
 
@@ -18,4 +18,4 @@ Subscription deletion disables future delivery and preserves existing audit/hist
 
 ### Current lease implementation (RH-005)
 
-The runtime scheduler now claims delivery work briefly, releases its connection/locks before HTTP, and finalizes under a fencing token. `webhook_delivery_claims` preserves uncertain outcomes on lease expiry. Thus the older HTTP-inside-transaction limitation above describes the preceding revision. Logical backup/restore, bounded optional successful-event retention, migration checksums and queue health are described in OPERATIONS.md.
+`webhook_delivery_claims` preserves uncertain outcomes on lease expiry. Logical backup/restore, bounded optional successful-event retention, migration checksums and queue health are described in OPERATIONS.md. The production profile enforces HTTPS targets and refuses unsafe bootstrap defaults. The TLS edge and enforcing CNI provide independent network boundaries; application pods do not receive service-account tokens or writable root filesystems.

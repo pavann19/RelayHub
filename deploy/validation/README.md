@@ -18,7 +18,7 @@ kind load docker-image relayhub:release-candidate --name relayhub-validation
 kind load docker-image relayhub-edge:release-candidate --name relayhub-validation
 python scripts/validate-production.py --deploy --image relayhub:release-candidate --seconds 600 --rate 5
 python scripts/validate-alerts.py
-python scripts/measure-capacity.py --rates 5,10,20 --seconds 60
+python scripts/measure-capacity.py --rates 5,10,20,50 --seconds 60
 python scripts/validate-bootstrap.py relayhub:release-candidate
 python scripts/verify-packaged-recovery.py --image relayhub:release-candidate --output target/readiness/packaged-recovery.json
 ```

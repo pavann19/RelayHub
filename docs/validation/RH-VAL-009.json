@@ -1,0 +1,115 @@
+{
+  "validation_id": "RH-VAL-009",
+  "status": "PASS",
+  "phases": [
+    {
+      "run_id": "c83819255ea84674b62e717ace6ab771",
+      "target_rps": 5,
+      "requested_seconds": 60,
+      "ingestion_elapsed_seconds": 59.841,
+      "achieved_acknowledgements_per_second": 5.013,
+      "unique_events": 300,
+      "first_attempt_non_201": 0,
+      "backlog_at_ingestion_stop": 0,
+      "drain_seconds": 0.952,
+      "delivery_successes": 300,
+      "ingest_latency_seconds": {
+        "p50": 0.027315,
+        "p95": 0.045321,
+        "p99": 0.049308
+      },
+      "end_to_end_delivery_seconds": {
+        "p50": 0.519868,
+        "p95": 0.84663,
+        "p99": 0.923004
+      },
+      "receiver_duplicates_observed": 0,
+      "status": "PASS"
+    },
+    {
+      "run_id": "2a0a683533934a3588b17459ccbae33d",
+      "target_rps": 10,
+      "requested_seconds": 60,
+      "ingestion_elapsed_seconds": 59.94,
+      "achieved_acknowledgements_per_second": 10.01,
+      "unique_events": 600,
+      "first_attempt_non_201": 0,
+      "backlog_at_ingestion_stop": 4,
+      "drain_seconds": 1.475,
+      "delivery_successes": 600,
+      "ingest_latency_seconds": {
+        "p50": 0.025609,
+        "p95": 0.046076,
+        "p99": 0.056777
+      },
+      "end_to_end_delivery_seconds": {
+        "p50": 0.528327,
+        "p95": 0.859942,
+        "p99": 0.950275
+      },
+      "receiver_duplicates_observed": 0,
+      "status": "PASS"
+    },
+    {
+      "run_id": "206ebc4f273c4116bf34fa6241c293f4",
+      "target_rps": 20,
+      "requested_seconds": 60,
+      "ingestion_elapsed_seconds": 59.985,
+      "achieved_acknowledgements_per_second": 20.005,
+      "unique_events": 1200,
+      "first_attempt_non_201": 0,
+      "backlog_at_ingestion_stop": 0,
+      "drain_seconds": 1.023,
+      "delivery_successes": 1200,
+      "ingest_latency_seconds": {
+        "p50": 0.027294,
+        "p95": 0.059467,
+        "p99": 0.091391
+      },
+      "end_to_end_delivery_seconds": {
+        "p50": 0.555863,
+        "p95": 0.874503,
+        "p99": 0.950682
+      },
+      "receiver_duplicates_observed": 0,
+      "status": "PASS"
+    },
+    {
+      "run_id": "dff3ff66714e4626b6c4d2548eb81965",
+      "target_rps": 50,
+      "requested_seconds": 60,
+      "ingestion_elapsed_seconds": 60.045,
+      "achieved_acknowledgements_per_second": 49.962,
+      "unique_events": 3000,
+      "first_attempt_non_201": 0,
+      "backlog_at_ingestion_stop": 824,
+      "drain_seconds": 17.254,
+      "delivery_successes": 3000,
+      "ingest_latency_seconds": {
+        "p50": 0.043895,
+        "p95": 0.103855,
+        "p99": 0.16541
+      },
+      "end_to_end_delivery_seconds": {
+        "p50": 12.799834,
+        "p95": 16.955663,
+        "p99": 17.110271
+      },
+      "receiver_duplicates_observed": 0,
+      "status": "PASS"
+    }
+  ],
+  "scope": "Local single-node Kind/Calico; two application replicas; direct transport; TLS edge and receiver",
+  "acceptance": "All unique requests acknowledged and read back; all deliveries drain within 180 seconds; no duplicate receiver acceptances",
+  "latency_target": "Measured, no prior service-level commitment",
+  "invocations": [
+    "--rates 5,10,20 --seconds 60",
+    "--rates 50 --seconds 60"
+  ],
+  "change_id": "RH-009",
+  "application_source_commit": "6e82a3b99eaf6988e0a55faebbd3fb46176903ba",
+  "application_artifact_reference": "RH-VAL-010.json",
+  "edge_artifact_reference": "RH-VAL-008.json",
+  "interpretation": "20 rps is the highest tested phase with sub-second p95 end-to-end delivery. The 50 rps phase accumulates backlog; it is not a demonstrated sustained 50 rps delivery capacity.",
+  "raw_rpc_sha256": "606935901d644d57881990ba4a8476ada3107c25c82ae7dd9af483ac6fa8aeff"
+}
