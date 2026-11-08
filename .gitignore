@@ -47,3 +47,7 @@ buildNumber.properties
 .DS_Store
 Thumbs.db
 
+
+# Local generated validation material and bootstrap credentials
+__pycache__/
+*.private.json

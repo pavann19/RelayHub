@@ -1,0 +1,35 @@
+# Explicit production profile: no demo seed, no fallback database credentials.
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL}
+    username: ${SPRING_DATASOURCE_USERNAME}
+    password: ${SPRING_DATASOURCE_PASSWORD}
+  lifecycle:
+    timeout-per-shutdown-phase: 40s
+  sql:
+    init:
+      mode: never
+  flyway:
+    baseline-on-migrate: ${RELAYHUB_BASELINE_EXISTING:false}
+server:
+  shutdown: graceful
+management:
+  endpoint:
+    health:
+      show-details: never
+      group:
+        readiness:
+          include: readinessState,db
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+relayhub:
+  webhook:
+    require-https: true
+    allowed-hosts: ${RELAYHUB_WEBHOOK_ALLOWED_HOSTS}
+    allow-private-targets: ${RELAYHUB_WEBHOOK_ALLOW_PRIVATE_TARGETS:false}
+  retention:
+    enabled: ${RELAYHUB_RETENTION_ENABLED:false}
+    success-days: ${RELAYHUB_RETENTION_SUCCESS_DAYS:90}

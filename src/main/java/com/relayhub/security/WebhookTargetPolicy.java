@@ -14,6 +14,8 @@ import org.springframework.stereotype.Component;
 public class WebhookTargetPolicy {
     private final Set<String> allowedHosts;
     private final boolean allowPrivate;
+    @Value("${relayhub.webhook.require-https:false}")
+    private boolean requireHttps;
 
     public WebhookTargetPolicy(@Value("${relayhub.webhook.allowed-hosts:}") String hosts,
             @Value("${relayhub.webhook.allow-private-targets:false}") boolean allowPrivate) {
@@ -32,6 +34,9 @@ public class WebhookTargetPolicy {
         try {
             URI uri = URI.create(target);
             String host = uri.getHost();
+            if (requireHttps && !"https".equals(uri.getScheme())) {
+                throw new IllegalArgumentException("HTTPS webhook destinations are required");
+            }
             if (!("https".equals(uri.getScheme()) || "http".equals(uri.getScheme()))
                     || host == null || uri.getRawUserInfo() != null || uri.getRawFragment() != null
                     || uri.getPort() == 0 || uri.getPort() > 65535

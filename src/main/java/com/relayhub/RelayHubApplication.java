@@ -14,6 +14,17 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 public class RelayHubApplication {
 
     public static void main(String[] args) {
+        if (java.util.Arrays.asList(args).contains("--migrate-only")) {
+            String[] forwarded = java.util.stream.Stream.concat(
+                    java.util.Arrays.stream(args).filter(a -> !a.equals("--migrate-only")),
+                    java.util.stream.Stream.of("--relayhub.workers.enabled=false")).toArray(String[]::new);
+            try (var context = new org.springframework.boot.builder.SpringApplicationBuilder(RelayHubApplication.class)
+                    .web(org.springframework.boot.WebApplicationType.NONE)
+                    .properties("relayhub.workers.enabled=false").run(forwarded)) {
+                context.getBean(org.flywaydb.core.Flyway.class).validate();
+            }
+            return;
+        }
         SpringApplication.run(RelayHubApplication.class, args);
     }
 

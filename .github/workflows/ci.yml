@@ -1,15 +1,24 @@
-name: RelayHub CI/CD
+name: RelayHub verification
 
 on:
+  workflow_dispatch:
   push:
     branches: [ main, develop ]
   pull_request:
     branches: [ main ]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: relayhub-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-test:
     name: Build, Verify and Test
     runs-on: ubuntu-latest
+    timeout-minutes: 25
 
     steps:
       - name: Checkout Code
@@ -26,10 +35,10 @@ jobs:
         run: chmod +x mvnw
 
       - name: Run Unit and Live Integration Tests
-        run: ./mvnw clean test --batch-mode
+        run: ./mvnw clean verify --batch-mode
 
-      - name: Package Executable JAR
-        run: ./mvnw package -DskipTests --batch-mode
+      - name: Verify credential bootstrap safety
+        run: python3 scripts/test_bootstrap_credentials.py
 
       - name: Verify Docker Container Build
         run: docker build -t relayhub:ci .

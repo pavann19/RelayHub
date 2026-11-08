@@ -1,0 +1,14 @@
+{
+  "change_id": "RH-007",
+  "validation_id": "RH-VAL-007",
+  "scope": "Local production-profile hardening and automated tests; Kubernetes and endurance tracked separately",
+  "java_verify": {"tests": 82, "failures": 0, "errors": 0, "skipped": 0},
+  "bootstrap_python_tests": {"tests": 2, "result": "PASS"},
+  "tls_fixtures": ["trusted CA and hostname success", "unknown CA rejected", "hostname mismatch rejected", "wrong trust anchor rejected", "original hostname retained in SNI"],
+  "image": "relayhub:rh007",
+  "image_id": "sha256:3460c907292f870a7d7f6cf8c63b6c6135882d4959d2a9bafe2620136eb7c8c7",
+  "image_jar_sha256": "330fc310497bb7580bbce105d0e232ae50c2e7645b0f648a7c015d338e342b44",
+  "windows_jar_sha256": "d34d7443b79b755f7a8a980766c30e46f698243d86d7653a006d09b0206e6389",
+  "hosted_ci": "UNVERIFIED_NO_REMOTE",
+  "production_operation": "NOT_CLAIMED"
+}

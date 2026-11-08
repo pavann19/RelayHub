@@ -9,3 +9,6 @@ data:
   KAFKA_BOOTSTRAP_SERVERS: "kafka.relayhub.svc.cluster.local:9092"
   MANAGEMENT_ENDPOINTS_WEB_EXPOSURE_INCLUDE: "health,info,metrics,prometheus"
 
+  SPRING_PROFILES_ACTIVE: "production"
+  RELAYHUB_WEBHOOK_ALLOWED_HOSTS: "webhook.example.com"
+  RELAYHUB_RETENTION_ENABLED: "false"

@@ -17,6 +17,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
+@org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication(type = org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication.Type.SERVLET)
 @EnableWebSecurity
 @EnableMethodSecurity
 public class SecurityConfig {
@@ -69,6 +70,7 @@ public class SecurityConfig {
                                 "/error",
                                 "/"
                         ).permitAll()
+                        .requestMatchers("/actuator/prometheus", "/actuator/metrics", "/actuator/metrics/**").hasAnyRole("ADMIN", "OBSERVE")
                         .requestMatchers("/actuator/**").hasRole("ADMIN")
                         .requestMatchers("/api/v1/operations/**", "/api/v1/api-keys/**", "/api/v1/subscriptions/**", "/api/v1/deliveries/replay/**").hasRole("ADMIN")
                         .requestMatchers("/api/**").hasAnyRole("INGEST", "ADMIN")

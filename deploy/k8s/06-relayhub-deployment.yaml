@@ -6,7 +6,7 @@ metadata:
   labels:
     app: relayhub
 spec:
-  replicas: 3
+  replicas: 2
   selector:
     matchLabels:
       app: relayhub
@@ -24,6 +24,8 @@ spec:
         runAsUser: 10001
         runAsGroup: 10001
         fsGroup: 10001
+      terminationGracePeriodSeconds: 90
+      automountServiceAccountToken: false
       containers:
         - name: relayhub
           image: relayhub:1.0.0
@@ -36,13 +38,23 @@ spec:
                 name: relayhub-config
             - secretRef:
                 name: relayhub-secrets
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+            seccompProfile:
+              type: RuntimeDefault
+          volumeMounts:
+            - name: temporary-files
+              mountPath: /tmp
           resources:
             requests:
-              cpu: 500m
-              memory: 512Mi
+              cpu: 100m
+              memory: 256Mi
             limits:
-              cpu: 2000m
-              memory: 2Gi
+              cpu: 1000m
+              memory: 768Mi
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
@@ -60,3 +72,7 @@ spec:
             timeoutSeconds: 3
             failureThreshold: 2
 
+      volumes:
+        - name: temporary-files
+          emptyDir:
+            sizeLimit: 128Mi

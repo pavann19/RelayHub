@@ -43,8 +43,10 @@ For a standalone application, provide database credentials, provision tenant/API
 | --- | --- |
 | Event ingestion/read; delivery audit/read | INGEST or ADMIN |
 | Subscription management; API-key management; replay | ADMIN |
-| Metrics and detailed actuator endpoints | ADMIN |
-| Health and API documentation | Public |
+| Prometheus and metrics | OBSERVE or ADMIN |
+| Other detailed actuator endpoints | ADMIN |
+| Health | Public |
+| API documentation | Public in development; disabled in production profile |
 
 Compose demo ingestion key: `rlh_live_demo1234567890abcdef`. Compose demo admin key: `rlh_admin_9876543210fedcba`. These are public demo credentials and must never be used in a public deployment.
 
@@ -62,15 +64,15 @@ Idempotent replays return the original response/status with `Idempotent-Replay: 
 - PostgreSQL serializes token and monthly-quota consumption across instances. Quotas use UTC calendar months and survive process restarts. Redis is present in the demo topology but is not used by the active limiter.
 - `maxRetries` currently means **maximum total attempts**, including the first request. Transient failures and 429 responses schedule retries; other 4xx responses dead-letter immediately. Full jitter ranges from zero to the bounded exponential delay. Retry-After is capped at 24 hours.
 - Attempts are preserved in `webhook_delivery_attempts`; the delivery row tracks the latest attempt. Failed/dead-lettered deliveries can be explicitly queued for replay. A manual replay grants one additional attempt after exhaustion, retaining the cumulative attempt number.
-- Redirects are disabled, response previews are bounded, and destinations are checked against an operator-owned host allowlist and address restrictions at creation and delivery. Enforce outbound network policy as well: Java HTTP DNS resolution is not pinned to the policy lookup, so application validation alone is not a DNS-rebinding boundary.
+- Redirects are disabled, response previews are bounded, and destinations are checked against an operator-owned host allowlist and address restrictions at creation and delivery. Approved DNS addresses are pinned to each HTTP connection while certificate, hostname and SNI checks retain the original hostname. Enforce outbound network policy as a second boundary.
 - API keys are SHA-256 hashed. HMAC-SHA256 signs outbound payloads. JWT/OIDC authentication and OpenTelemetry trace propagation are not implemented.
-- The initial worker is deliberately bounded and holds an event lock/database connection during each HTTP attempt. It is not a demonstrated high-throughput deployment. Tune and measure before increasing concurrency.
+- Delivery workers acquire fenced leases in short database transactions and perform HTTP outside those transactions. A crashed worker leaves an auditable uncertain attempt; expired leases recover. Tune and measure before increasing concurrency.
 
 ## Verification and deployment status
 
 See [current fix validation](docs/FIX_VALIDATION.md) for fresh checks and limitations. [Historical evidence](docs/EVIDENCE.md) is retained separately. Existing load-test scripts are workload definitions, not current performance measurements. No managed production, Kubernetes runtime, throughput or latency claim is made by this revision.
 
-[Architecture](docs/ARCHITECTURE.md) · [Security](docs/SECURITY.md) · [Rate limits](docs/RATE_LIMITING_SPEC.md) · [Retry/DLQ](docs/RETRY_AND_DLQ_SPEC.md) · [API](docs/API_REFERENCE.md) · [Deployment](docs/DEPLOYMENT.md)
+[Architecture](docs/ARCHITECTURE.md) Â· [Security](docs/SECURITY.md) Â· [Rate limits](docs/RATE_LIMITING_SPEC.md) Â· [Retry/DLQ](docs/RETRY_AND_DLQ_SPEC.md) Â· [API](docs/API_REFERENCE.md) Â· [Deployment](docs/DEPLOYMENT.md)
 
 ### RH-004 behavior update
 

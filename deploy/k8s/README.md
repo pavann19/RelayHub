@@ -1,0 +1,9 @@
+# Deployment contract
+
+These resources require an enforcing NetworkPolicy CNI, externally provisioned secrets, and a TLS edge labelled `app: relayhub-edge`. They no longer create a public default database password. The `production` profile rejects known demo keys and disables public API documentation.
+
+Before applying the app, create `relayhub-secrets` in namespace `relayhub` with `SPRING_DATASOURCE_USERNAME` and a unique `SPRING_DATASOURCE_PASSWORD` of at least 16 characters. Provision through the target environment's secret manager or a private local env file; never commit generated secret values. PostgreSQL uses the same secret. Set allowed webhook hostnames explicitly in the ConfigMap. Use a private ADMIN key and a separate `ROLE_OBSERVE` key for Prometheus. The trusted bootstrap script defaults to a read-only preview and only writes credentials with `--apply` to the explicitly named database container.
+
+The application pods use a read-only root filesystem, writable bounded `/tmp`, no service-account token, dropped capabilities and the runtime-default seccomp profile. An ingress NetworkPolicy permits only the TLS edge and Prometheus. The egress policy permits DNS, PostgreSQL/Kafka and public IPv4 HTTPS. Modify policy for approved private endpoints or node-local DNS and verify it with the real CNI.
+
+PostgreSQL and Kafka manifests are single-instance development reference infrastructure, **not an HA database/broker claim**. HPA needs a metrics-server. A two-replica application on a single local node demonstrates rollout and pod replacement, not multi-node availability. See `docs/readiness/` for measured local verification and remaining hosted-environment gates.

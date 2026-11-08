@@ -391,4 +391,15 @@ public class TestcontainersIntegrationTest {
         assertEquals(0,deliveries.findAttemptSnapshots(id).size());
     }
 
+    @Test
+    void observabilityRoleCannotReadEventsOrManageKeys() throws Exception {
+        String create=mapper.writeValueAsString(java.util.Map.of("name","metrics-only","role","ROLE_OBSERVE"));
+        var issued=api("/api/v1/api-keys",ADMIN,create,null);
+        assertEquals(201,issued.statusCode());
+        String key=mapper.readTree(issued.body()).get("rawKey").asText();
+        assertEquals(200,api("/actuator/prometheus",key,null,null).statusCode());
+        assertEquals(403,api("/api/v1/events",key,null,null).statusCode());
+        assertEquals(403,api("/api/v1/api-keys",key,create,null).statusCode());
+    }
+
 }

@@ -20,6 +20,11 @@ import org.springframework.stereotype.Component;
 /** Each attempt connects only to the exact addresses approved by the target policy. */
 @Component
 public class HttpWebhookClient implements AutoCloseable {
+    private final javax.net.ssl.SSLContext tlsContext;
+    public HttpWebhookClient() { this(null); }
+    // Package-visible constructor permits isolated trust-anchor tests without global JVM changes.
+    HttpWebhookClient(javax.net.ssl.SSLContext tlsContext) { this.tlsContext = tlsContext; }
+
     private WebhookTargetPolicy targetPolicy = new WebhookTargetPolicy("", false);
     private final java.util.concurrent.ScheduledExecutorService deadlines = Executors.newSingleThreadScheduledExecutor(r -> {
         Thread thread = new Thread(r, "webhook-deadline"); thread.setDaemon(true); return thread;
@@ -42,8 +47,11 @@ public class HttpWebhookClient implements AutoCloseable {
                 public String resolveCanonicalHostname(String host) { return target.getHost(); }
             };
             Timeout timeout = Timeout.ofMilliseconds(Math.max(500, timeoutMs));
-            var manager = PoolingHttpClientConnectionManagerBuilder.create().setDnsResolver(pinned)
-                    .setDefaultConnectionConfig(ConnectionConfig.custom().setConnectTimeout(timeout).setSocketTimeout(timeout).build()).build();
+            var managerBuilder = PoolingHttpClientConnectionManagerBuilder.create().setDnsResolver(pinned)
+                    .setDefaultConnectionConfig(ConnectionConfig.custom().setConnectTimeout(timeout).setSocketTimeout(timeout).build());
+            if (tlsContext != null) managerBuilder.setTlsSocketStrategy(
+                    org.apache.hc.client5.http.ssl.ClientTlsStrategyBuilder.create().setSslContext(tlsContext).buildClassic());
+            var manager = managerBuilder.build();
             // Retain hostname in the URI: TLS certificate/hostname verification and SNI remain enabled.
             try (var client = HttpClients.custom().setConnectionManager(manager).disableRedirectHandling()
                     .disableAutomaticRetries().disableCookieManagement().build()) {

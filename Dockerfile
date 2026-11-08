@@ -7,7 +7,7 @@ COPY src src
 RUN ./mvnw package -DskipTests --batch-mode
 
 # Minimal Secure Runtime for RelayHub
-FROM eclipse-temurin:21-jdk-alpine AS runner
+FROM eclipse-temurin:21-jre-alpine AS runner
 WORKDIR /app
 
 # Add unprivileged system user
@@ -24,8 +24,8 @@ USER 10001:10001
 EXPOSE 8080
 
 HEALTHCHECK --interval=5s --timeout=3s --retries=10 --start-period=10s \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1
+  CMD wget -q --spider http://localhost:8080/actuator/health || exit 1
 
 ENV JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0 -XX:+UseG1GC -Djava.security.egd=file:/dev/./urandom"
 
-ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar /app/relayhub.jar"]
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -jar /app/relayhub.jar \"$@\"", "relayhub"]

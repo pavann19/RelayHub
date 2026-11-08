@@ -9,7 +9,7 @@ public record ApiKeyRequest(
         @jakarta.validation.constraints.Size(max = 128)
         String name,
 
-        @Schema(description = "Role assigned to this key (ROLE_INGEST, ROLE_ADMIN)", example = "ROLE_INGEST", defaultValue = "ROLE_INGEST")
+        @Schema(description = "Role assigned to this key (ROLE_INGEST, ROLE_ADMIN, ROLE_OBSERVE)", example = "ROLE_INGEST", defaultValue = "ROLE_INGEST")
         String role,
 
         @Schema(description = "Optional validity period in days (e.g. 30, 90, 365, null for perpetual)", example = "90")
