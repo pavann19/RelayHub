@@ -14,7 +14,7 @@ Status is scoped to local code and local validation. IDs below map the 2026-11-0
 | GAP-M05 | Medium | Cached queue/age/quarantine gauges, refresh/worker errors, bounded metric labels | RH-005 / RH-VAL-005 |
 | GAP-V01 | Upgrade | Versioned checksummed migrations, tested legacy upgrade, admin preview/reconciliation | RH-005 / RH-VAL-005 |
 | GAP-V02 | Local artifact verification | Full suite, current source image, process replacement, logical backup restore, bounded correctness run | RH-VAL-005 final summary |
-| GAP-V03 | Runtime/external verification | Local Kind/Calico/TLS/alert receipt passed; hosted CI remains UNVERIFIED without an authorized remote | RH-008 / RH-VAL-008; hosted gate remains |
+| GAP-V03 | Runtime/external verification | Local Kind/Calico/TLS/alert receipt passed; hosted workflow status is tracked in PUBLICATION.md | RH-008 / RH-VAL-008; see publication evidence |
 | GAP-V04 | Capacity/endurance | Final 600-second failure workload and 5/10/20/50 rps ladder passed; 50 rps accumulated backlog | RH-008, RH-009; long-term/production endurance remains unverified |
 | GAP-P01 | Production defaults | Fail-closed profile, explicit private bootstrap/revocation, least-privilege OBSERVE role and strict TLS fixtures | RH-007, RH-013 |
 | GAP-P02 | Dependency security | Patched HttpCore/Snappy and minimal patched edge; both final images have zero reported High/Critical findings | RH-010, RH-008; scans are time-bound |
@@ -34,7 +34,7 @@ See OPERATIONS.md for the migration, retention, quarantine and recovery procedur
 
 ## Remaining release gates
 
-1. Configure an authorized Git remote and run hosted CI/security/recovery workflows. No push or public deployment has occurred.
+1. Complete hosted CI/security/recovery verification on the published release commit; see PUBLICATION.md for exact remote status. Repository publication does not deploy the application.
 2. Validate supported target Kubernetes/CNI versions, multi-node failure, real ingress/certificate rotation, secret management, runtime database privileges and HPA. The pinned single-node fixture is compatibility evidence.
 3. Demonstrate managed database/broker durability, off-site backup restore objectives, representative long-duration load, storage retention and on-call routing. A ten-minute local run is not a production soak or availability SLO.
 4. Tune worker/destination fairness and resource budgets if the intended workload exceeds the measured boundary. At 50 rps, backlog grew; sustained 50 rps delivery is not proven.

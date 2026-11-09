@@ -17,6 +17,7 @@ Every subsequent change receives a stable `RH-NNN` Change-ID and a corresponding
 | RH-013 | `b8c0c02291c5b959ecb70917a25d3a4f5ef34f7d` | Restrict private-file permissions before secret writes | RH-VAL-013 | Nine Python tests; real private bootstrap rerun passed |
 | RH-008 | `d21d607d3183ef6680d2a59c88cfc36bfecea2bd` | Hardened patched TLS edge, Calico enforcement, production bootstrap and alert acceptance | RH-VAL-008 | Final 3,000-event failure workload; 229 HTTP 503 attempts recovered; alert firing/resolution; restart/restore; post-resume smoke |
 | RH-009 | `457454b63372f1e09b0739ca793c12b7297de030` | Measured workload ladder, honest capacity boundary, portfolio/interview artifacts and current gap closure | RH-VAL-009 | 5,100 events across four phases; payload/receiver reconciliation; measured latency/backlog/drain |
+| RH-014 | `0c2140577dd0ff0df3ed404b197e1e260f3b2599` | Final local provenance closure | RH-VAL-014 | Local evidence, source identities and isolated cleanup verified |
 
 
 RH-001 and RH-VAL-001 are retrospective tracking IDs; its existing commit message is preserved. Evidence: [RH-VAL-001](validation/fix-validation-2026-11-07.json), [RH-VAL-002](validation/RH-VAL-002.json), and [scope/limitations](FIX_VALIDATION.md).

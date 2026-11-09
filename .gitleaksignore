@@ -1,0 +1,11 @@
+# Exact historical documentation/demo/test fixtures reviewed before publication.
+# These entries suppress only the listed commit, file, rule and line; new findings remain visible.
+959d690cb8efa7dfbd70ddf5926dd4be7d1eac17:README.md:curl-auth-header:128
+959d690cb8efa7dfbd70ddf5926dd4be7d1eac17:README.md:curl-auth-header:156
+959d690cb8efa7dfbd70ddf5926dd4be7d1eac17:README.md:curl-auth-header:187
+959d690cb8efa7dfbd70ddf5926dd4be7d1eac17:README.md:generic-api-key:131
+959d690cb8efa7dfbd70ddf5926dd4be7d1eac17:docs/API_REFERENCE.md:generic-api-key:33
+959d690cb8efa7dfbd70ddf5926dd4be7d1eac17:docs/API_REFERENCE.md:generic-api-key:82
+959d690cb8efa7dfbd70ddf5926dd4be7d1eac17:scripts/verify-signature.py:generic-api-key:57
+959d690cb8efa7dfbd70ddf5926dd4be7d1eac17:src/test/java/com/relayhub/security/ApiKeyHasherTest.java:generic-api-key:25
+959d690cb8efa7dfbd70ddf5926dd4be7d1eac17:src/test/java/com/relayhub/signing/WebhookSignatureTest.java:generic-api-key:14

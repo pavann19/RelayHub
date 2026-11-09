@@ -37,7 +37,7 @@ All 5,100 ladder events completed with no non-201 initial responses or duplicate
 | RH-VAL-012 | Python receiver helper rejects duplicate/malformed signature fields; seven Python checks total |
 | RH-VAL-013 | Private Windows file ACLs applied before credential writes; nine Python checks at the current revision |
 
-The checked-in validation summaries link measurements to artifact hashes and change IDs. Raw local reports, generated keys and certificates remain under ignored target/readiness/. Reproduction commands are in deploy/validation/README.md. Hosted CI has a prepared verification/security workflow but has not run because this checkout has no remote.
+The checked-in validation summaries link measurements to artifact hashes and change IDs. Raw local reports, generated keys and certificates remain under ignored target/readiness/. Reproduction commands are in deploy/validation/README.md. Publication and hosted workflow status are tracked in PUBLICATION.md; the measurements in this case study remain local evidence.
 
 The first functional run used a stock edge image that subsequently failed its vulnerability gate. It was replaced before the final repeated acceptance above. Those earlier measurements remain historical and do not certify the patched stack. A later machine/container restart reset the fixture's in-memory counters; the completed reports were preserved, database rows remained, and a fresh post-resume HTTPS/HMAC event passed. That incidental restart is not a planned node-failure or uptime experiment.
 

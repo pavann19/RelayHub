@@ -74,7 +74,7 @@ Idempotent replays return the original response/status with `Idempotent-Replay: 
 
 The current release candidate passes 84 Java tests and nine Python checks. Both final application and TLS-edge images pass the High/Critical dependency gate. Local Kind/Calico acceptance covers strict HTTPS/HMAC delivery, network-policy enforcement, private bootstrap, process replacement, logical restore and actual alert firing/resolution. A final ten-minute workload delivered all 3,000 accepted events; the measured ladder and its saturation boundary are in the [case study](docs/PORTFOLIO_CASE_STUDY.md).
 
-See [current validation](docs/FIX_VALIDATION.md), [remaining release gates](docs/GAP_STATUS.md) and the artifact-scoped JSON summaries. [Historical evidence](docs/EVIDENCE.md) remains separate. Hosted CI, managed production, multi-node availability and long-term endurance remain unverified; local results do not establish production capacity.
+See [current validation](docs/FIX_VALIDATION.md), [publication and hosted verification](docs/PUBLICATION.md), [remaining release gates](docs/GAP_STATUS.md) and the artifact-scoped JSON summaries. [Historical evidence](docs/EVIDENCE.md) remains separate. Managed production, multi-node availability and long-term endurance remain unverified; local results do not establish production capacity.
 
 [Architecture](docs/ARCHITECTURE.md) · [Security](docs/SECURITY.md) · [Rate limits](docs/RATE_LIMITING_SPEC.md) · [Retry/DLQ](docs/RETRY_AND_DLQ_SPEC.md) · [API](docs/API_REFERENCE.md) · [Deployment](docs/DEPLOYMENT.md)
 

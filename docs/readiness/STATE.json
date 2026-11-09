@@ -10,7 +10,8 @@
     "RH-011": "Loopback-only demo exposure",
     "RH-012": "Python receiver signature checks",
     "RH-013": "Private ACL before key write",
-    "RH-014": "Final provenance and closure tracking"
+    "RH-014": "Final provenance and closure tracking",
+    "RH-015": "Repository publication preparation and full-history checks"
   },
   "acceptance": {
     "dedicated_tls_fixtures": "PASS_LOCAL",
@@ -19,7 +20,7 @@
     "alert_firing_and_receipt": "PASS_LOCAL",
     "sustained_local_workload_and_failure_recovery": "PASS_LOCAL",
     "final_suite_image_and_local_commits": "84_JAVA_AND_9_PYTHON_PASS; BOTH_FINAL_IMAGES_SCANNED; LOCAL_COMMITS",
-    "hosted_ci": "BLOCKED_NO_GIT_REMOTE",
+    "hosted_ci": "AWAITING_FIRST_HOSTED_RUN",
     "public_deployment": "NOT_AUTHORIZED"
   },
   "protected_resources": [
@@ -27,7 +28,7 @@
     "user existing databases/volumes",
     "next_task.txt"
   ],
-  "publication": "local-only until separately approved",
+  "publication": "AUTHORIZED_GITHUB_REPOSITORY_PUBLICATION; APPLICATION_DEPLOYMENT_NOT_AUTHORIZED",
   "source_commit": "6e82a3b99eaf6988e0a55faebbd3fb46176903ba",
   "observed_at_utc": "2026-11-08T06:47:09.825395+00:00",
   "implementation_commits": {
@@ -37,7 +38,8 @@
     "RH-011": "d03022923ea656987ec889b4c2ef2efee17393ba",
     "RH-012": "b27b3dc6b5ea6a3ad3c7950bbc504dfd3dbc7094",
     "RH-013": "b8c0c02291c5b959ecb70917a25d3a4f5ef34f7d",
-    "RH-009": "457454b63372f1e09b0739ca793c12b7297de030"
+    "RH-009": "457454b63372f1e09b0739ca793c12b7297de030",
+    "RH-014": "0c2140577dd0ff0df3ed404b197e1e260f3b2599"
   },
   "cleanup": {
     "owned_validation_cluster": "REMOVED",
@@ -47,11 +49,13 @@
   },
   "completed_at_utc": "2026-11-08T10:09:56.009002+00:00",
   "remaining_release_gates": [
-    "Hosted CI on an authorized remote",
+    "Hosted CI on the published release commit",
     "Supported target Kubernetes/CNI, HPA and multi-node failure",
     "Managed secrets/certificates/database/broker/backup restore objectives",
     "Representative long-term load and production SLOs",
     "Higher sustained delivery rates require tuning and measurement"
   ],
-  "tracking_commit_lookup": "git log --format=%H --grep=Change-ID: RH-014"
+  "tracking_commit_lookup": "git log --format=%H --grep=Change-ID: RH-014",
+  "repository": "https://github.com/pavann19/RelayHub",
+  "branch": "main"
 }
