@@ -18,6 +18,7 @@ Every subsequent change receives a stable `RH-NNN` Change-ID and a corresponding
 | RH-008 | `d21d607d3183ef6680d2a59c88cfc36bfecea2bd` | Hardened patched TLS edge, Calico enforcement, production bootstrap and alert acceptance | RH-VAL-008 | Final 3,000-event failure workload; 229 HTTP 503 attempts recovered; alert firing/resolution; restart/restore; post-resume smoke |
 | RH-009 | `457454b63372f1e09b0739ca793c12b7297de030` | Measured workload ladder, honest capacity boundary, portfolio/interview artifacts and current gap closure | RH-VAL-009 | 5,100 events across four phases; payload/receiver reconciliation; measured latency/backlog/drain |
 | RH-014 | `0c2140577dd0ff0df3ed404b197e1e260f3b2599` | Final local provenance closure | RH-VAL-014 | Local evidence, source identities and isolated cleanup verified |
+| RH-015 | `df5deca04011833b24b6b89bc91dc027f1dd82a7` | Publish preserved history and review exact historical fixture findings | RH-VAL-015 | Full-history attribution/secret checks; ordinary main push; first hosted run passed |
 
 
 RH-001 and RH-VAL-001 are retrospective tracking IDs; its existing commit message is preserved. Evidence: [RH-VAL-001](validation/fix-validation-2026-11-07.json), [RH-VAL-002](validation/RH-VAL-002.json), and [scope/limitations](FIX_VALIDATION.md).
@@ -55,3 +56,7 @@ RH-008 and RH-009 were reserved for the Kubernetes acceptance and capacity/portf
 - Both images passed the stated High/Critical scan; raw scanner/CycloneDX hashes and exact behavioral scopes are in RH-VAL-008 and RH-VAL-010.
 
 RH-014 records final provenance after RH-009 exists. Its own exact hash is resolved by `git log --format="%H" --grep="Change-ID: RH-014"`; it cannot embed its own future Git hash. The final checkout contains only the pre-existing untracked next_task.txt outside committed work. No push occurred, and the dedicated test cluster was cleaned while preserving kind-modelgate and the default context.
+
+## Repository publication follow-up
+
+The local-only statement above describes the RH-014 snapshot. Publication was subsequently authorized to https://github.com/pavann19/RelayHub and completed by RH-015 without rewriting the preceding hashes. Hosted run 42561365249 passed for RH-015; test-results artifact ID 13648599966 preserves the results. RH-016 records this evidence and pins maintained workflow actions. Resolve its exact hash with `git log --format="%H" --grep="Change-ID: RH-016"`. Application deployments remain outside repository-publication scope.

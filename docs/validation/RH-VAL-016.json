@@ -1,0 +1,76 @@
+{
+  "change_id": "RH-016",
+  "validation_id": "RH-VAL-016",
+  "status": "PASS_HOSTED_BASELINE",
+  "repository": "https://github.com/pavann19/RelayHub",
+  "published_branch": "main",
+  "verified_commit": "df5deca04011833b24b6b89bc91dc027f1dd82a7",
+  "workflow_run_id": 42561365249,
+  "workflow_url": "https://github.com/pavann19/RelayHub/actions/runs/42561365249",
+  "workflow_conclusion": "success",
+  "workflow_completed_at": "2026-11-09T04:24:28Z",
+  "artifact_id": 13648599966,
+  "junit": {
+    "tests": 84,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "python_tests": 9,
+  "images": [
+    {
+      "image": "relayhub-edge:ci",
+      "artifact_id": "sha256:9317b158afe233b263a770b7e0979691f9e5d9c8805d8c91a263a4cc0c279609",
+      "reported_high_critical_findings": 0,
+      "report_sha256": "01907e657b9ed1a3cb1e0a5f12fd7145de915f4af8718ce402b175924b94b91c"
+    },
+    {
+      "image": "relayhub:ci",
+      "artifact_id": "sha256:99529ef90083ef07f793b0939be7c4e72fab505283c6b1854e26c67a501addf6",
+      "reported_high_critical_findings": 0,
+      "report_sha256": "86a826ce2e47fc5058471fc829af887ff3b6e3aae5bc3a87fad5390b8a5a17e9"
+    }
+  ],
+  "packaged_recovery": {
+    "status": "PASS",
+    "transport": "direct",
+    "image": "relayhub:ci",
+    "backup_restore_verified": true,
+    "accepted_before_process_kill": true,
+    "pending_outbox_before_kill": 1,
+    "delivered_after_replacement": true,
+    "committed_attempts": 1,
+    "receiver_acceptances": 1,
+    "idempotent_response_survived_restart": true,
+    "original_payload_preserved": true,
+    "elapsed_seconds": 19.83
+  },
+  "attribution_scan": {
+    "published_commits_at_baseline": 18,
+    "prohibited_matches": 0,
+    "coauthor_trailers": 0
+  },
+  "workflow_follow_up": {
+    "reason": "Replace deprecated Node 20 actions with supported Node 24 releases; immutable SHA pins",
+    "checkout": {
+      "version": "v7.0.1",
+      "sha": "3d3c42e5aac5ba805825da76410c181273ba90b1"
+    },
+    "setup_java": {
+      "version": "v6.2.0",
+      "sha": "77dd5b2ce225ea11469928ac317850245a74ae78"
+    },
+    "upload_artifact": {
+      "version": "v7.0.2",
+      "sha": "cf430e030ddbb5b0abf93d22962f4752f3646cd9"
+    },
+    "follow_up_verification": "Run automatically on this commit push; use exact GitHub run status rather than inferring it from the baseline"
+  },
+  "not_claimed": [
+    "Hosted performance benchmark",
+    "Managed production",
+    "Multi-node availability",
+    "Long-term endurance",
+    "Application deployment"
+  ]
+}

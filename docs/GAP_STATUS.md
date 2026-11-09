@@ -34,7 +34,7 @@ See OPERATIONS.md for the migration, retention, quarantine and recovery procedur
 
 ## Remaining release gates
 
-1. Complete hosted CI/security/recovery verification on the published release commit; see PUBLICATION.md for exact remote status. Repository publication does not deploy the application.
+1. Hosted CI/security/recovery passed for the publication commit; see PUBLICATION.md for the exact run and any follow-up revision. Repository publication does not deploy the application.
 2. Validate supported target Kubernetes/CNI versions, multi-node failure, real ingress/certificate rotation, secret management, runtime database privileges and HPA. The pinned single-node fixture is compatibility evidence.
 3. Demonstrate managed database/broker durability, off-site backup restore objectives, representative long-duration load, storage retention and on-call routing. A ten-minute local run is not a production soak or availability SLO.
 4. Tune worker/destination fairness and resource budgets if the intended workload exceeds the measured boundary. At 50 rps, backlog grew; sustained 50 rps delivery is not proven.
